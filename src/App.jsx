@@ -6,77 +6,169 @@ const CATEGORIES = [
   "Bitters", "Juice & Cordials", "Syrups", "Garnishes", "Dry Goods", "Other"
 ];
 
-// ─── SEED DATA ────────────────────────────────────────────────────────────────
+// ─── SEED DATA — Real bar data ────────────────────────────────────────────────
 const SEED_INGREDIENTS = [
   // Spirits
-  { id: 1,  name: "Tequila Blanco",      category: "Spirits",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 6 },
-  { id: 2,  name: "Vodka",               category: "Spirits",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 6 },
-  { id: 3,  name: "Gin",                 category: "Spirits",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
-  { id: 4,  name: "White Rum",           category: "Spirits",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
-  { id: 5,  name: "Bourbon",             category: "Spirits",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 6,  name: "Dark Rum",            category: "Spirits",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  // Liqueurs
-  { id: 7,  name: "Triple Sec",          category: "Liqueurs",        recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 8,  name: "Campari",             category: "Liqueurs",        recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 9,  name: "Aperol",              category: "Liqueurs",        recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 10, name: "Kahlua",              category: "Liqueurs",        recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 11, name: "Baileys",             category: "Liqueurs",        recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 12, name: "Elderflower Liqueur", category: "Liqueurs",        recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 2 },
-  // Wine
-  { id: 13, name: "Prosecco",            category: "Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 12 },
-  { id: 14, name: "Pinot Grigio",        category: "Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 15, name: "Sauvignon Blanc",     category: "Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 16, name: "Shiraz",              category: "Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  // Beer & Cider
-  { id: 17, name: "Lager",              category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 3 },
-  { id: 18, name: "IPA",               category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
-  { id: 19, name: "Pale Ale",          category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
-  { id: 20, name: "Apple Cider",       category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
-  // Bitters
-  { id: 21, name: "Angostura Bitters",  category: "Bitters",         recipeUnit: "dash", purchaseUnit: "bottle",  purchaseSize: 400,  par: 3 },
-  { id: 22, name: "Orange Bitters",     category: "Bitters",         recipeUnit: "dash", purchaseUnit: "bottle",  purchaseSize: 200,  par: 2 },
-  { id: 23, name: "Peychauds Bitters",  category: "Bitters",         recipeUnit: "dash", purchaseUnit: "bottle",  purchaseSize: 200,  par: 2 },
-  // Juice & Cordials
-  { id: 24, name: "Fresh Lime Juice",   category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
-  { id: 25, name: "Fresh Lemon Juice",  category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
-  { id: 26, name: "Orange Juice",       category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
-  { id: 27, name: "Pineapple Juice",    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
-  { id: 28, name: "Cranberry Juice",    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
-  { id: 29, name: "Grapefruit Juice",   category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 2 },
+  { id: 1,  name: "Chivas Regal 12",               category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
+  { id: 2,  name: "Yellow Rose Rye",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 3,  name: "Maker's Mark",                   category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
+  { id: 4,  name: "Jameson",                        category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
+  { id: 5,  name: "Toki Blended Whisky",            category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
+  { id: 6,  name: "Olmeca Tequila",                 category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
+  { id: 7,  name: "Havana Club 3",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
+  { id: 8,  name: "Beefeater Gin",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
+  { id: 9,  name: "Absolut Vanilla",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
+  { id: 10, name: "Absolut Vodka",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 11, name: "Vida Mezcal",                    category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  // Liqueurs (inc. vermouth)
+  { id: 12, name: "Amaro Montenegro",               category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 13, name: "Campari",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 14, name: "Baileys",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 15, name: "Pavan",                          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 16, name: "Marie Brizard Cacao Blanc",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 17, name: "Marie Brizard Elderflower",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
+  { id: 18, name: "DeKuyper Peach",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 19, name: "DeKuyper Butterscotch",          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 20, name: "DeKuyper Sour Apple Puckers",    category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 21, name: "Malibu",                         category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 22, name: "Triple Sec",                     category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
+  { id: 23, name: "Martini Bianco",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
+  { id: 24, name: "Sweet Vermouth",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
   // Syrups
-  { id: 30, name: "Simple Syrup",       category: "Syrups",          recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 2 },
-  { id: 31, name: "Grenadine",          category: "Syrups",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 32, name: "Elderflower Cordial",category: "Syrups",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 2 },
-  { id: 33, name: "Orgeat",             category: "Syrups",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 1 },
-  { id: 34, name: "Honey Syrup",        category: "Syrups",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 2 },
-  // Garnishes
-  { id: 35, name: "Limes",             category: "Garnishes",        recipeUnit: "unit", purchaseUnit: "kg bag",  purchaseSize: 10,   par: 3 },
-  { id: 36, name: "Lemons",            category: "Garnishes",        recipeUnit: "unit", purchaseUnit: "kg bag",  purchaseSize: 8,    par: 2 },
-  { id: 37, name: "Oranges",           category: "Garnishes",        recipeUnit: "unit", purchaseUnit: "kg bag",  purchaseSize: 8,    par: 2 },
-  { id: 38, name: "Fresh Mint",        category: "Garnishes",        recipeUnit: "g",    purchaseUnit: "bunch",   purchaseSize: 30,   par: 5 },
-  { id: 39, name: "Maraschino Cherries",category:"Garnishes",        recipeUnit: "unit", purchaseUnit: "jar",     purchaseSize: 50,   par: 2 },
-  { id: 40, name: "Cucumber",          category: "Garnishes",        recipeUnit: "unit", purchaseUnit: "each",    purchaseSize: 1,    par: 10 },
+  { id: 25, name: "Monin Caramel Syrup",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 26, name: "Monin Strawberry Syrup",         category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 27, name: "Maple Syrup",                    category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
+  { id: 28, name: "Orgeat (Crawley's)",             category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 2 },
+  { id: 29, name: "Sugar Syrup (house)",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "2kg bag", purchaseSize: 3000, par: 3 },
+  // Juice & Cordials
+  { id: 30, name: "Lemon Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
+  { id: 31, name: "Lime Juice",                     category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
+  { id: 32, name: "Apple Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
+  { id: 33, name: "Passionfruit Pulp",              category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "can",     purchaseSize: 500,  par: 3 },
+  { id: 34, name: "Cranberry Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
+  { id: 35, name: "Pineapple Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
+  { id: 36, name: "Aquafaba",                       category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
+  // Bitters
+  { id: 37, name: "Chocolate Bitters",              category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2 },
+  { id: 38, name: "Orange Bitters",                 category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2 },
+  // Beer & Cider (ordered by case/24, counted individually)
+  { id: 39, name: "Corona (355ml)",                 category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
+  { id: 40, name: "Great Northern Original (330ml)",category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
+  { id: 41, name: "Great Northern Supercrisp (330ml)",category:"Beer & Cider",    recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
+  { id: 42, name: "Heineken Zero (330ml)",          category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 1 },
+  { id: 43, name: "James Squire Orchard Crush (345ml)",category:"Beer & Cider",   recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
+  // Wine — Sparkling & Champagne
+  { id: 44, name: "Clover Hill NV",                 category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 45, name: "Bianca Vigna Prosecco",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 12 },
+  { id: 46, name: "Taittinger",                     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3 },
+  // Wine — Aromatic & Lighter White
+  { id: 47, name: "Fiore Moscato",                  category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 48, name: "Hay Shed Hill Sauvignon Semillon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 49, name: "Hesketh Sauvignon Blanc",        category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 50, name: "Josef Chromy Sgr Riesling",      category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
+  { id: 51, name: "Rockburn Pinot Gris",            category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
+  // Wine — Full Bodied White & Rosé
+  { id: 52, name: "Haha Chardonnay",                category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 53, name: "Dalrymple Chardonnay",           category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3 },
+  { id: 54, name: "Maison Saint AIX Rosé",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 55, name: "Santa Cristina Sangiovese Rosé", category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  // Wine — Lighter & Medium Red
+  { id: 56, name: "Fickle Mistress Pinot Noir",     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 57, name: "Torres Ibericos Tempranillo",    category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
+  { id: 58, name: "Domaine Beaurenard Grenache Syrah",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
+  // Wine — Full Bodied Red
+  { id: 59, name: "Little Berry Cabernet Sauvignon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 60, name: "Langmeil Valley Floor Shiraz",   category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
+  { id: 61, name: "Leeuwin Estate Art Series Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3 },
+  { id: 62, name: "Penfolds Bin 389 Cabernet Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
   // Dry Goods
-  { id: 41, name: "Salt (Rimming)",    category: "Dry Goods",        recipeUnit: "g",    purchaseUnit: "kg",      purchaseSize: 1000, par: 2 },
-  { id: 42, name: "Sugar (Rimming)",   category: "Dry Goods",        recipeUnit: "g",    purchaseUnit: "kg",      purchaseSize: 1000, par: 2 },
-  { id: 43, name: "Tajin",             category: "Dry Goods",        recipeUnit: "g",    purchaseUnit: "bottle",  purchaseSize: 142,  par: 2 },
-  { id: 44, name: "Coconut Cream",     category: "Dry Goods",        recipeUnit: "ml",   purchaseUnit: "can",     purchaseSize: 400,  par: 4 },
+  { id: 63, name: "Tajin",                          category: "Dry Goods",        recipeUnit: "g",    purchaseUnit: "bottle",  purchaseSize: 142,  par: 2 },
+  { id: 64, name: "Fever-Tree Lime & Yuzu Soda",    category: "Dry Goods",        recipeUnit: "ml",   purchaseUnit: "4-pack",  purchaseSize: 800,  par: 5 },
 ];
 
 const SEED_RECIPES = [
-  { id: 1, name: "Margarita",       ingredients: [{ ingredientId: 1, quantity: 50 }, { ingredientId: 7, quantity: 25 }, { ingredientId: 24, quantity: 20 }, { ingredientId: 30, quantity: 10 }] },
-  { id: 2, name: "Cosmopolitan",    ingredients: [{ ingredientId: 2, quantity: 45 }, { ingredientId: 7, quantity: 15 }, { ingredientId: 30, quantity: 10 }, { ingredientId: 28, quantity: 30 }] },
-  { id: 3, name: "Aperol Spritz",   ingredients: [{ ingredientId: 9, quantity: 60 }, { ingredientId: 13, quantity: 90 }, { ingredientId: 26, quantity: 30 }] },
-  { id: 4, name: "Negroni",         ingredients: [{ ingredientId: 3, quantity: 30 }, { ingredientId: 8, quantity: 30 }, { ingredientId: 16, quantity: 30 }] },
-  { id: 5, name: "Espresso Martini",ingredients: [{ ingredientId: 2, quantity: 50 }, { ingredientId: 10, quantity: 20 }, { ingredientId: 30, quantity: 10 }] },
-  { id: 6, name: "Mojito",          ingredients: [{ ingredientId: 4, quantity: 50 }, { ingredientId: 24, quantity: 25 }, { ingredientId: 30, quantity: 15 }, { ingredientId: 38, quantity: 8 }, { ingredientId: 35, quantity: 1 }] },
-  { id: 7, name: "Old Fashioned",   ingredients: [{ ingredientId: 5, quantity: 60 }, { ingredientId: 30, quantity: 5 }, { ingredientId: 21, quantity: 2 }] },
-  { id: 8, name: "Pina Colada",     ingredients: [{ ingredientId: 4, quantity: 45 }, { ingredientId: 27, quantity: 90 }, { ingredientId: 44, quantity: 30 }] },
+  // ── Cocktails ──
+  { id: 1,  name: "Smoke & Silk",
+    ingredients: [{ ingredientId: 1, quantity: 60 }, { ingredientId: 27, quantity: 15 }, { ingredientId: 37, quantity: 2.4 }] },
+  { id: 2,  name: "Fifth Avenue",
+    ingredients: [{ ingredientId: 2, quantity: 45 }, { ingredientId: 12, quantity: 15 }, { ingredientId: 38, quantity: 1.8 }] },
+  { id: 3,  name: "Crimson Bloom",
+    ingredients: [{ ingredientId: 3, quantity: 20 }, { ingredientId: 24, quantity: 20 }, { ingredientId: 13, quantity: 20 }] },
+  { id: 4,  name: "Velour Drift",
+    ingredients: [{ ingredientId: 4, quantity: 40 }, { ingredientId: 14, quantity: 20 }, { ingredientId: 25, quantity: 10 }] },
+  { id: 5,  name: "Kisetsu",
+    ingredients: [{ ingredientId: 3, quantity: 40 }, { ingredientId: 16, quantity: 20 }, { ingredientId: 30, quantity: 25 }, { ingredientId: 26, quantity: 10 }] },
+  { id: 6,  name: "Golden Pulse",
+    ingredients: [{ ingredientId: 4, quantity: 30 }, { ingredientId: 17, quantity: 30 }, { ingredientId: 32, quantity: 60 }, { ingredientId: 33, quantity: 30 }, { ingredientId: 36, quantity: 30 }] },
+  { id: 7,  name: "Jasmine Mist",
+    ingredients: [{ ingredientId: 8, quantity: 45 }, { ingredientId: 17, quantity: 15 }, { ingredientId: 23, quantity: 5 }] },
+  { id: 8,  name: "Yuzu High",
+    ingredients: [{ ingredientId: 5, quantity: 60 }, { ingredientId: 64, quantity: 90 }] },
+  { id: 9,  name: "Neon Collins",
+    ingredients: [{ ingredientId: 10, quantity: 30 }] },
+  { id: 10, name: "First Light",
+    ingredients: [{ ingredientId: 6, quantity: 30 }, { ingredientId: 21, quantity: 30 }, { ingredientId: 31, quantity: 30 }, { ingredientId: 28, quantity: 10 }, { ingredientId: 22, quantity: 5 }] },
+  { id: 11, name: "Hikari Muse",
+    ingredients: [{ ingredientId: 9, quantity: 45 }, { ingredientId: 18, quantity: 15 }, { ingredientId: 26, quantity: 20 }, { ingredientId: 30, quantity: 25 }, { ingredientId: 36, quantity: 30 }] },
+  { id: 12, name: "Kin Bite",
+    ingredients: [{ ingredientId: 8, quantity: 30 }, { ingredientId: 19, quantity: 15 }, { ingredientId: 20, quantity: 15 }, { ingredientId: 30, quantity: 30 }, { ingredientId: 29, quantity: 30 }, { ingredientId: 36, quantity: 30 }] },
+  { id: 13, name: "Blush Rose",
+    ingredients: [{ ingredientId: 15, quantity: 30 }, { ingredientId: 30, quantity: 20 }, { ingredientId: 34, quantity: 40 }, { ingredientId: 45, quantity: 90 }] },
+  { id: 14, name: "Ember Flame",
+    ingredients: [{ ingredientId: 7, quantity: 30 }, { ingredientId: 22, quantity: 30 }, { ingredientId: 31, quantity: 30 }, { ingredientId: 35, quantity: 30 }, { ingredientId: 28, quantity: 10 }, { ingredientId: 11, quantity: 15 }] },
+  { id: 15, name: "Japanese Highball",
+    ingredients: [{ ingredientId: 5, quantity: 60 }] },
+  // ── Beer ──
+  { id: 16, name: "Corona",                         ingredients: [{ ingredientId: 39, quantity: 1 }] },
+  { id: 17, name: "Great Northern Original",        ingredients: [{ ingredientId: 40, quantity: 1 }] },
+  { id: 18, name: "Great Northern Supercrisp",      ingredients: [{ ingredientId: 41, quantity: 1 }] },
+  { id: 19, name: "Heineken Zero",                  ingredients: [{ ingredientId: 42, quantity: 1 }] },
+  { id: 20, name: "James Squire Orchard Crush",     ingredients: [{ ingredientId: 43, quantity: 1 }] },
+  // ── Sparkling & Champagne (120ml) ──
+  { id: 21, name: "Clover Hill NV 120ml",           ingredients: [{ ingredientId: 44, quantity: 120 }] },
+  { id: 22, name: "Bianca Vigna Prosecco 120ml",    ingredients: [{ ingredientId: 45, quantity: 120 }] },
+  { id: 23, name: "Taittinger 120ml",               ingredients: [{ ingredientId: 46, quantity: 120 }] },
+  // ── Aromatic & Lighter White (150ml / 250ml) ──
+  { id: 24, name: "Fiore Moscato 150ml",            ingredients: [{ ingredientId: 47, quantity: 150 }] },
+  { id: 25, name: "Fiore Moscato 250ml",            ingredients: [{ ingredientId: 47, quantity: 250 }] },
+  { id: 26, name: "Hay Shed Hill Sauv Sem 150ml",   ingredients: [{ ingredientId: 48, quantity: 150 }] },
+  { id: 27, name: "Hay Shed Hill Sauv Sem 250ml",   ingredients: [{ ingredientId: 48, quantity: 250 }] },
+  { id: 28, name: "Hesketh Sauvignon Blanc 150ml",  ingredients: [{ ingredientId: 49, quantity: 150 }] },
+  { id: 29, name: "Hesketh Sauvignon Blanc 250ml",  ingredients: [{ ingredientId: 49, quantity: 250 }] },
+  { id: 30, name: "Josef Chromy Riesling 150ml",    ingredients: [{ ingredientId: 50, quantity: 150 }] },
+  { id: 31, name: "Josef Chromy Riesling 250ml",    ingredients: [{ ingredientId: 50, quantity: 250 }] },
+  { id: 32, name: "Rockburn Pinot Gris 150ml",      ingredients: [{ ingredientId: 51, quantity: 150 }] },
+  { id: 33, name: "Rockburn Pinot Gris 250ml",      ingredients: [{ ingredientId: 51, quantity: 250 }] },
+  // ── Full Bodied White & Rosé (150ml / 250ml) ──
+  { id: 34, name: "Haha Chardonnay 150ml",          ingredients: [{ ingredientId: 52, quantity: 150 }] },
+  { id: 35, name: "Haha Chardonnay 250ml",          ingredients: [{ ingredientId: 52, quantity: 250 }] },
+  { id: 36, name: "Dalrymple Chardonnay 150ml",     ingredients: [{ ingredientId: 53, quantity: 150 }] },
+  { id: 37, name: "Dalrymple Chardonnay 250ml",     ingredients: [{ ingredientId: 53, quantity: 250 }] },
+  { id: 38, name: "Maison Saint AIX Rosé 150ml",    ingredients: [{ ingredientId: 54, quantity: 150 }] },
+  { id: 39, name: "Maison Saint AIX Rosé 250ml",    ingredients: [{ ingredientId: 54, quantity: 250 }] },
+  { id: 40, name: "Santa Cristina Rosé 150ml",      ingredients: [{ ingredientId: 55, quantity: 150 }] },
+  { id: 41, name: "Santa Cristina Rosé 250ml",      ingredients: [{ ingredientId: 55, quantity: 250 }] },
+  // ── Lighter & Medium Red (150ml / 250ml) ──
+  { id: 42, name: "Fickle Mistress Pinot Noir 150ml",  ingredients: [{ ingredientId: 56, quantity: 150 }] },
+  { id: 43, name: "Fickle Mistress Pinot Noir 250ml",  ingredients: [{ ingredientId: 56, quantity: 250 }] },
+  { id: 44, name: "Torres Tempranillo 150ml",           ingredients: [{ ingredientId: 57, quantity: 150 }] },
+  { id: 45, name: "Torres Tempranillo 250ml",           ingredients: [{ ingredientId: 57, quantity: 250 }] },
+  { id: 46, name: "Domaine Beaurenard Grenache 150ml",  ingredients: [{ ingredientId: 58, quantity: 150 }] },
+  { id: 47, name: "Domaine Beaurenard Grenache 250ml",  ingredients: [{ ingredientId: 58, quantity: 250 }] },
+  // ── Full Bodied Red (150ml / 250ml) ──
+  { id: 48, name: "Little Berry Cabernet Sauv 150ml",   ingredients: [{ ingredientId: 59, quantity: 150 }] },
+  { id: 49, name: "Little Berry Cabernet Sauv 250ml",   ingredients: [{ ingredientId: 59, quantity: 250 }] },
+  { id: 50, name: "Langmeil Valley Floor Shiraz 150ml", ingredients: [{ ingredientId: 60, quantity: 150 }] },
+  { id: 51, name: "Langmeil Valley Floor Shiraz 250ml", ingredients: [{ ingredientId: 60, quantity: 250 }] },
+  { id: 52, name: "Leeuwin Art Series Shiraz 150ml",    ingredients: [{ ingredientId: 61, quantity: 150 }] },
+  { id: 53, name: "Leeuwin Art Series Shiraz 250ml",    ingredients: [{ ingredientId: 61, quantity: 250 }] },
+  { id: 54, name: "Penfolds Bin 389 150ml",             ingredients: [{ ingredientId: 62, quantity: 150 }] },
+  { id: 55, name: "Penfolds Bin 389 250ml",             ingredients: [{ ingredientId: 62, quantity: 250 }] },
 ];
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const RECIPE_UNITS   = ["ml", "g", "unit", "dash", "tsp", "tbsp"];
-const PURCHASE_UNITS = ["bottle", "litre", "kg", "kg bag", "can", "keg", "bag", "each", "case", "crate", "punnet", "bunch", "jar"];
+const PURCHASE_UNITS = ["bottle", "litre", "kg", "kg bag", "2kg bag", "can", "keg", "bag", "each", "case", "4-pack", "crate", "punnet", "bunch", "jar"];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const num     = (v) => parseFloat(v) || 0;
@@ -92,7 +184,7 @@ const toPurch = (ing, v) => num(ing?.purchaseSize) > 0 ? num(v) / num(ing.purcha
 const dateStr = () => new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
-const STOR_LIB = "bb-lib-v2", STOR_PERIOD = "bb-period-v2";
+const STOR_LIB = "bb-lib-v3", STOR_PERIOD = "bb-period-v3";
 async function sGet(key) {
   try { const r = await window.storage.get(key); return r?.value ? JSON.parse(r.value) : null; } catch { return null; }
 }
