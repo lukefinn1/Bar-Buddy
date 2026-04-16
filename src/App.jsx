@@ -32,6 +32,39 @@ const toBase = (ing, v) => n(v) * n(ing?.purchaseSize);
 const toPurch = (ing, v) => n(ing?.purchaseSize) > 0 ? n(v) / n(ing.purchaseSize) : 0;
 const dateStr = () => new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
 
+// ─── NUM INPUT ────────────────────────────────────────────────────────────────
+// Defined at MODULE level — never inside a component — so React never
+// remounts it on re-render (which would kill focus after each keystroke).
+function NumInput({ value, onChange, placeholder, suffix, sublabel }) {
+  return (
+    <div style={{ position:"relative" }}>
+      <input
+        type="text"
+        inputMode="decimal"
+        pattern="[0-9]*\.?[0-9]*"
+        placeholder={placeholder || "0"}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        style={{
+          background:"#0a0a0a", border:"1px solid #252525", color:"#e8e0d0",
+          fontFamily:"-apple-system, BlinkMacSystemFont, 'Courier New', monospace",
+          fontSize:13, padding:"8px 12px",
+          paddingRight: suffix ? 76 : 12,
+          borderRadius:3, width:"100%", outline:"none", transition:"border-color .15s",
+        }}
+        onFocus={e => e.target.style.borderColor="#c8a96e"}
+        onBlur={e => e.target.style.borderColor="#252525"}
+      />
+      {suffix && <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, color:"#3a3a3a", pointerEvents:"none" }}>{suffix}</span>}
+      {sublabel && <div style={{ fontSize:10, color:"#3a3a3a", marginTop:3 }}>{sublabel}</div>}
+    </div>
+  );
+}
+
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 const STOR_LIB    = "bb-lib";
 const STOR_PERIOD = "bb-period";
@@ -240,36 +273,7 @@ export default function BarBuddy() {
   const topUsed       = [...ingredients].filter(i => (usage[i.id]||0) > 0)
     .sort((a,b) => toPurch(b, usage[b.id]||0) - toPurch(a, usage[a.id]||0)).slice(0,3);
 
-  // ── NUMBER INPUT COMPONENT ─────────────────────────────────────────────────
-  // Uses type="text" + inputMode="decimal" to avoid browser number-input quirks
-  // that prevent React controlled values from displaying correctly.
-  const NumInput = ({ value, onChange, placeholder, suffix, sublabel }) => (
-    <div style={{ position:"relative" }}>
-      <input
-        type="text"
-        inputMode="decimal"
-        pattern="[0-9]*\.?[0-9]*"
-        placeholder={placeholder || "0"}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="none"
-        spellCheck={false}
-        style={{
-          background:"#0a0a0a", border:"1px solid #252525", color:"#e8e0d0",
-          fontFamily:"-apple-system, BlinkMacSystemFont, 'Courier New', monospace",
-          fontSize:13, padding:"8px 12px",
-          paddingRight: suffix ? 76 : 12,
-          borderRadius:3, width:"100%", outline:"none", transition:"border-color .15s",
-        }}
-        onFocus={e => e.target.style.borderColor="#c8a96e"}
-        onBlur={e => e.target.style.borderColor="#252525"}
-      />
-      {suffix && <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, color:"#3a3a3a", pointerEvents:"none" }}>{suffix}</span>}
-      {sublabel && <div style={{ fontSize:10, color:"#3a3a3a", marginTop:3 }}>{sublabel}</div>}
-    </div>
-  );
+
 
   if (!loaded) return (
     <div style={{ minHeight:"100vh", background:"#0d0d0d", display:"flex", alignItems:"center", justifyContent:"center" }}>
