@@ -1616,6 +1616,8 @@ export default function BarBuddy() {
               })()}
             </div>
           )}
+        </div>
+      )}
 
       {/* BOTTOM NAV */}
       <nav className="nav">
