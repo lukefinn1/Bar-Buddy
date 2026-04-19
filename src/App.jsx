@@ -183,6 +183,21 @@ const toBase  = (ing, v) => num(v) * num(ing?.purchaseSize);
 const toPurch = (ing, v) => num(ing?.purchaseSize) > 0 ? num(v) / num(ing.purchaseSize) : 0;
 const dateStr = () => new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
 
+// Beer is ordered by case but COUNTED as individual units.
+// countUnit returns the unit used for stock entry inputs.
+// countSize returns how many countUnits are in one purchaseUnit.
+const countUnit = (ing) => ing.recipeUnit === "unit" && ing.purchaseUnit === "case" ? "bottle" : ing.purchaseUnit;
+const countSize = (ing) => ing.recipeUnit === "unit" && ing.purchaseUnit === "case" ? 1 : ing.purchaseSize;
+// Convert a count-unit value to base units
+const countToBase = (ing, v) => num(v) * countSize(ing);
+// Convert base units to count units (for display)
+const baseToCount = (ing, v) => countSize(ing) > 0 ? num(v) / countSize(ing) : 0;
+// Convert count units to purchase units (for order report)
+const countToPurch = (ing, v) => {
+  const baseVal = countToBase(ing, v);
+  return toPurch(ing, baseVal);
+};
+
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 const STOR_LIB = "bb-lib-v3", STOR_PERIOD = "bb-period-v3";
 async function sGet(key) {
@@ -352,6 +367,9 @@ export default function BarBuddy() {
   const [libCat,      setLibCat]      = useState("All");
   const [libSearch,   setLibSearch]   = useState("");
   const [recSearch,   setRecSearch]   = useState(""); // recipe builder ingredient search
+  const [recLibSearch, setRecLibSearch] = useState(""); // recipe library search
+  const [salesSearch,  setSalesSearch]  = useState(""); // sales entry search
+  const [orderShowAll, setOrderShowAll] = useState(false); // order report toggle
 
   const saveTimer = useRef(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
@@ -415,7 +433,11 @@ export default function BarBuddy() {
 
   const calcTheoClose = useCallback(() => {
     const u = calcUsage(); const res = {};
-    ingredients.forEach(ing => { res[ing.id]=toBase(ing,openingStock[ing.id])+toBase(ing,deliveries[ing.id])-(u[ing.id]||0); });
+    ingredients.forEach(ing => {
+      res[ing.id] = countToBase(ing, openingStock[ing.id])
+                  + countToBase(ing, deliveries[ing.id])
+                  - (u[ing.id]||0);
+    });
     return res;
   }, [openingStock, deliveries, calcUsage, ingredients]);
 
@@ -440,7 +462,13 @@ export default function BarBuddy() {
     const tc = calcTheoClose(); const newOp = {};
     ingredients.forEach(ing => {
       const has = closingStock[String(ing.id)]!==undefined && closingStock[String(ing.id)]!=="";
-      newOp[String(ing.id)] = has ? String(num(closingStock[String(ing.id)])) : String(Math.max(0,toPurch(ing,tc[ing.id]??0)));
+      if (has) {
+        // Closing stock entered in countUnits — store as countUnits for next opening
+        newOp[String(ing.id)] = String(num(closingStock[String(ing.id)]));
+      } else {
+        // Fall back to theoretical — convert base → countUnits
+        newOp[String(ing.id)] = String(Math.max(0, baseToCount(ing, tc[ing.id]??0)));
+      }
     });
     const ns = dateStr();
     setOpeningStock(newOp); setDeliveries({}); setMonthlySales({}); setWeeklyLog([]);
@@ -489,7 +517,7 @@ export default function BarBuddy() {
     ...ing,
     remP: toPurch(ing, theoClose[ing.id]??0),
     toOrder: Math.max(0, Math.ceil(ing.par - toPurch(ing, theoClose[ing.id]??0))),
-  }));
+  })).sort((a,b)=>b.toOrder - a.toOrder); // urgency sort — most needed first
   const orderItems   = orderSugs.filter(i=>i.toOrder>0);
   const topUsed      = [...ingredients].filter(i=>(usage[i.id]||0)>0)
     .sort((a,b)=>toPurch(b,usage[b.id]||0)-toPurch(a,usage[a.id]||0)).slice(0,4);
@@ -696,9 +724,9 @@ export default function BarBuddy() {
                           </div>
                           <NumInput
                             value={openingStock[String(ing.id)]??""}
-                            suffix={`${ing.purchaseUnit}s`}
+                            suffix={`${countUnit(ing)}s`}
                             placeholder="0"
-                            sublabel={openingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,openingStock[String(ing.id)]))}` : ""}
+                            sublabel={openingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit, countToBase(ing, openingStock[String(ing.id)]))}` : ""}
                             onChange={val=>{
                               if(!monthStart) setMonthStart(dateStr());
                               setOpeningStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({openingStock:u}));return u;});
@@ -734,9 +762,9 @@ export default function BarBuddy() {
                           </div>
                           <NumInput
                             value={deliveries[String(ing.id)]??""}
-                            suffix={`${ing.purchaseUnit}s`}
+                            suffix={`${countUnit(ing)}s`}
                             placeholder="0"
-                            sublabel={deliveries[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,deliveries[String(ing.id)]))}` : ""}
+                            sublabel={deliveries[String(ing.id)] ? `= ${fmtB(ing.recipeUnit, countToBase(ing, deliveries[String(ing.id)]))}` : ""}
                             onChange={val=>{
                               setDeliveries(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({deliveries:u}));return u;});
                             }}
@@ -771,9 +799,9 @@ export default function BarBuddy() {
                           </div>
                           <NumInput
                             value={closingStock[String(ing.id)]??""}
-                            suffix={`${ing.purchaseUnit}s`}
+                            suffix={`${countUnit(ing)}s`}
                             placeholder="e.g. 1.5"
-                            sublabel={closingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,closingStock[String(ing.id)]))}` : ""}
+                            sublabel={closingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit, countToBase(ing, closingStock[String(ing.id)]))}` : ""}
                             onChange={val=>{
                               setClosingStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({closingStock:u}));return u;});
                             }}
@@ -796,7 +824,12 @@ export default function BarBuddy() {
       {tab==="orders" && (
         <div className="page">
           <div className="card" style={{marginBottom:10,borderColor:"#c9a96e44"}}>
-            <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--gold)",marginBottom:4}}>Order Suggestion</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--gold)"}}>Order Suggestion</div>
+              <button onClick={()=>setOrderShowAll(p=>!p)} style={{background:"none",border:"1px solid var(--border)",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:".08em",padding:"5px 10px",borderRadius:20,cursor:"pointer"}}>
+                {orderShowAll ? "Needs ordering only" : "Show all"}
+              </button>
+            </div>
             <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Opening + deliveries − sales = remaining → vs par → order in whole units</div>
             {weekTotal>0&&<div style={{marginTop:10,fontSize:11,color:"#fb923c",background:"#fb923c0a",border:"1px solid #fb923c22",borderRadius:10,padding:"10px 14px"}}>⚠ {weekTotal} drinks not yet logged this week</div>}
           </div>
@@ -804,48 +837,58 @@ export default function BarBuddy() {
           <SearchBar value={orderSearch} onChange={setOrderSearch} placeholder="Search ingredients..." />
           <CategoryFilter
             selected={orderCat} onChange={setOrderCat}
-            counts={(() => { const c={}; orderSugs.forEach(i=>{c[i.category]=(c[i.category]||0)+1;}); return c; })()}
+            counts={(() => {
+              const src = orderShowAll ? orderSugs : orderSugs.filter(i=>i.toOrder>0);
+              const c={}; src.forEach(i=>{c[i.category]=(c[i.category]||0)+1;}); return c;
+            })()}
           />
 
           {(() => {
-            const filtered = filterIngs(orderSugs, orderCat, orderSearch);
-            return filtered.length===0
-              ? <div className="no-results">No ingredients match</div>
-              : filtered.map(ing=>{
-                const ob=toBase(ing,openingStock[String(ing.id)]);
-                const db=toBase(ing,deliveries[String(ing.id)]);
-                const ub=usage[ing.id]||0;
-                const rb=ob+db-ub;
-                return (
-                  <div key={ing.id} className="card" style={{marginBottom:8,borderColor:ing.toOrder>0?"var(--gold-dim)":"var(--border)"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                      <div style={{flex:1,paddingRight:12}}>
-                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                          <span style={{fontFamily:"var(--font-serif)",fontSize:16,fontWeight:600}}>{ing.name}</span>
-                          <span className="tag-cat">{ing.category}</span>
-                        </div>
-                        <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
-                          <div style={{display:"flex",justifyContent:"space-between"}}><span>Opening</span><span style={{color:"var(--text-mid)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,ob))}</span></div>
-                          <div style={{display:"flex",justifyContent:"space-between"}}><span>Delivered</span><span style={{color:"var(--text-mid)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,db))}</span></div>
-                          <div style={{display:"flex",justifyContent:"space-between"}}><span>Used</span><span style={{color:"var(--text-mid)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,ub))}</span></div>
-                          <div style={{borderTop:"1px solid var(--border)",marginTop:3,paddingTop:3,display:"flex",justifyContent:"space-between"}}>
-                            <span>Remaining</span><span style={{color:"var(--text)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,rb))}</span>
-                          </div>
-                          <div style={{display:"flex",justifyContent:"space-between"}}><span>Par</span><span style={{color:"var(--text)"}}>{ing.par} {ing.purchaseUnit}s</span></div>
-                        </div>
+            const src = orderShowAll ? orderSugs : orderSugs.filter(i=>i.toOrder>0);
+            const filtered = filterIngs(src, orderCat, orderSearch);
+            if (filtered.length===0 && !orderShowAll) return (
+              <div className="card" style={{textAlign:"center",padding:32}}>
+                <div style={{color:"var(--green)",fontSize:28,marginBottom:8}}>✓</div>
+                <div style={{fontFamily:"var(--font-serif)",fontSize:18,color:"var(--green)",marginBottom:4}}>All Stock Above Par</div>
+                <div style={{fontSize:11,color:"var(--text-dim)"}}>Nothing to order this week</div>
+              </div>
+            );
+            if (filtered.length===0) return <div className="no-results">No ingredients match</div>;
+            return filtered.map(ing=>{
+              const ob=countToBase(ing,openingStock[String(ing.id)]);
+              const db=countToBase(ing,deliveries[String(ing.id)]);
+              const ub=usage[ing.id]||0;
+              const rb=ob+db-ub;
+              return (
+                <div key={ing.id} className="card" style={{marginBottom:8,borderColor:ing.toOrder>0?"var(--gold-dim)":"var(--border)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1,paddingRight:12}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                        <span style={{fontFamily:"var(--font-serif)",fontSize:16,fontWeight:600}}>{ing.name}</span>
+                        <span className="tag-cat">{ing.category}</span>
                       </div>
-                      <div style={{textAlign:"right",minWidth:80}}>
-                        {ing.toOrder>0?(
-                          <div style={{background:"var(--gold-bg)",border:"1px solid var(--gold-dim)",borderRadius:12,padding:"10px 12px",textAlign:"center"}}>
-                            <div style={{fontFamily:"var(--font-serif)",fontSize:30,fontWeight:700,color:"var(--gold)",lineHeight:1}}>{ing.toOrder}</div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--gold)",marginTop:2}}>{ing.purchaseUnit}{ing.toOrder!==1?"s":""}</div>
-                          </div>
-                        ):<span className="tag-g"><Icon.check/> Par</span>}
+                      <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Opening</span><span style={{color:"var(--text-mid)"}}>{fmtP(countUnit(ing),baseToCount(ing,ob))}</span></div>
+                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Delivered</span><span style={{color:"var(--text-mid)"}}>{fmtP(countUnit(ing),baseToCount(ing,db))}</span></div>
+                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Used</span><span style={{color:"var(--text-mid)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,ub))}</span></div>
+                        <div style={{borderTop:"1px solid var(--border)",marginTop:3,paddingTop:3,display:"flex",justifyContent:"space-between"}}>
+                          <span>Remaining</span><span style={{color:"var(--text)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,rb))}</span>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Par</span><span style={{color:"var(--text)"}}>{ing.par} {ing.purchaseUnit}s</span></div>
                       </div>
                     </div>
+                    <div style={{textAlign:"right",minWidth:80}}>
+                      {ing.toOrder>0?(
+                        <div style={{background:"var(--gold-bg)",border:"1px solid var(--gold-dim)",borderRadius:12,padding:"10px 12px",textAlign:"center"}}>
+                          <div style={{fontFamily:"var(--font-serif)",fontSize:30,fontWeight:700,color:"var(--gold)",lineHeight:1}}>{ing.toOrder}</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--gold)",marginTop:2}}>{ing.purchaseUnit}{ing.toOrder!==1?"s":""}</div>
+                        </div>
+                      ):<span className="tag-g"><Icon.check/> Par</span>}
+                    </div>
                   </div>
-                );
-              });
+                </div>
+              );
+            });
           })()}
         </div>
       )}
@@ -877,22 +920,43 @@ export default function BarBuddy() {
                   {csvError&&<div style={{color:"var(--red)",fontSize:11,marginTop:6}}>{csvError}</div>}
                 </div>
                 <hr className="hr"/>
-                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
-                  {recipes.map(recipe=>(
-                    <div key={recipe.id}>
-                      <label className="field-label">{recipe.name}</label>
-                      <input type="text" inputMode="decimal" placeholder="0 sold"
-                        autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
-                        value={weekSales[recipe.id]??""}
-                        onChange={e=>setWeekSales(prev=>({...prev,[recipe.id]:e.target.value}))}
-                        style={{background:"var(--input-bg)",border:"1.5px solid var(--border)",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:15,padding:"14px 16px",borderRadius:10,width:"100%",outline:"none",WebkitAppearance:"none"}}
-                        onFocus={e=>e.target.style.borderColor="var(--gold)"}
-                        onBlur={e=>e.target.style.borderColor="var(--border)"}
-                      />
-                    </div>
-                  ))}
-                  {recipes.length===0&&<div style={{fontSize:13,color:"var(--text-dim)"}}>Add recipes in Setup first.</div>}
-                </div>
+                {/* Sales search */}
+                <SearchBar value={salesSearch} onChange={setSalesSearch} placeholder="Search drinks..." />
+                {/* Group recipes by type for display */}
+                {(() => {
+                  const GROUPS = [
+                    { label:"Cocktails", ids: recipes.filter(r=>r.id<=15).map(r=>r.id) },
+                    { label:"Beer",      ids: recipes.filter(r=>r.id>=16&&r.id<=20).map(r=>r.id) },
+                    { label:"Wine",      ids: recipes.filter(r=>r.id>=21).map(r=>r.id) },
+                  ];
+                  return GROUPS.map(group=>{
+                    const filtered = group.ids
+                      .map(id=>recipes.find(r=>r.id===id))
+                      .filter(r=>r && (salesSearch===""||r.name.toLowerCase().includes(salesSearch.toLowerCase())));
+                    if (filtered.length===0) return null;
+                    return (
+                      <div key={group.label} style={{marginBottom:16}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:".15em",textTransform:"uppercase",color:"var(--text-dim)",marginBottom:10,paddingBottom:6,borderBottom:"1px solid var(--border)"}}>{group.label}</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                          {filtered.map(recipe=>(
+                            <div key={recipe.id}>
+                              <label className="field-label">{recipe.name}</label>
+                              <input type="text" inputMode="decimal" placeholder="0 sold"
+                                autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
+                                value={weekSales[recipe.id]??""}
+                                onChange={e=>setWeekSales(prev=>({...prev,[recipe.id]:e.target.value}))}
+                                style={{background:"var(--input-bg)",border:"1.5px solid var(--border)",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:15,padding:"14px 16px",borderRadius:10,width:"100%",outline:"none",WebkitAppearance:"none"}}
+                                onFocus={e=>e.target.style.borderColor="var(--gold)"}
+                                onBlur={e=>e.target.style.borderColor="var(--border)"}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+                {recipes.length===0&&<div style={{fontSize:13,color:"var(--text-dim)"}}>Add recipes in Setup first.</div>}
                 {weekTotal>0&&<button className="btn-primary" onClick={()=>setModal("logWeek")}>Log Week {weekNum} — {weekTotal} drinks</button>}
               </div>
               {weeklyLog.length>0&&(
@@ -940,8 +1004,9 @@ export default function BarBuddy() {
                   {filterIngs(ingredients, varCat, varSearch)
                     .filter(item=>closingStock[String(item.id)]!==undefined&&closingStock[String(item.id)]!=="")
                     .map(item=>{
+                      // Both tP and aP in PURCHASE units (cases for beer) for consistent comparison
                       const tP  = toPurch(item, theoClose[item.id]??0);
-                      const aP  = num(closingStock[String(item.id)]);
+                      const aP  = toPurch(item, countToBase(item, num(closingStock[String(item.id)])));
                       const vP  = aP - tP;
                       const pct = tP!==0 ? ((vP/tP)*100).toFixed(1) : "—";
                       const isNeg = vP < -0.1, isPos = vP > 0.1;
@@ -957,11 +1022,17 @@ export default function BarBuddy() {
                               <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,fontFamily:"var(--font-mono)"}}>
                                 <div style={{display:"flex",justifyContent:"space-between",color:"var(--text-dim)"}}>
                                   <span>Theoretical</span>
-                                  <span style={{color:"var(--text-mid)"}}>{fmtP(item.purchaseUnit, tP)} {item.purchaseUnit}s</span>
+                                  <span style={{color:"var(--text-mid)"}}>
+                                    {fmtP(item.purchaseUnit, tP)} {item.purchaseUnit}s
+                                    {item.purchaseUnit==="case"&&<span style={{color:"var(--text-dim)",fontSize:10}}> ({Math.round(tP*item.purchaseSize)} bottles)</span>}
+                                  </span>
                                 </div>
                                 <div style={{display:"flex",justifyContent:"space-between",color:"var(--text-dim)"}}>
                                   <span>Actual count</span>
-                                  <span style={{color:"var(--text)"}}>{fmtP(item.purchaseUnit, aP)} {item.purchaseUnit}s</span>
+                                  <span style={{color:"var(--text)"}}>
+                                    {fmtP(item.purchaseUnit, aP)} {item.purchaseUnit}s
+                                    {item.purchaseUnit==="case"&&<span style={{color:"var(--text-dim)",fontSize:10}}> ({Math.round(aP*item.purchaseSize)} bottles)</span>}
+                                  </span>
                                 </div>
                                 <div style={{display:"flex",justifyContent:"space-between",paddingTop:4,marginTop:2,borderTop:"1px solid var(--border)",color:"var(--text-dim)"}}>
                                   <span>Difference</span>
@@ -1230,8 +1301,11 @@ export default function BarBuddy() {
 
               <div className="card">
                 <span className="sect">Recipe Library — {recipes.length} recipes</span>
+                <SearchBar value={recLibSearch} onChange={setRecLibSearch} placeholder="Search recipes..." />
                 {recipes.length===0&&<div style={{fontSize:13,color:"var(--text-dim)"}}>No recipes yet.</div>}
-                {recipes.map(recipe=>(
+                {recipes
+                  .filter(r=>recLibSearch===""||r.name.toLowerCase().includes(recLibSearch.toLowerCase()))
+                  .map(recipe=>(
                   <div key={recipe.id} style={{paddingBottom:16,marginBottom:14,borderBottom:"1px solid var(--border)"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                       <div style={{fontFamily:"var(--font-serif)",fontSize:17,fontWeight:600}}>{recipe.name}</div>
