@@ -310,6 +310,7 @@ const Icon = {
 export default function BarBuddy() {
   const [tab,      setTab]      = useState("home");
   const [subTab,   setSubTab]   = useState("ingredients"); // Setup sub-tabs
+  const [stockTab, setStockTab] = useState("opening");     // Stock sub-tabs: opening | deliveries | closing
   const [varTab,   setVarTab]   = useState("sales");       // Variance sub-tabs: sales | results
   const [loaded, setLoaded] = useState(false);
   const [toast,  setToast]  = useState("");
@@ -666,114 +667,128 @@ export default function BarBuddy() {
       {/* ══ STOCK ══ */}
       {tab==="stock" && (
         <div className="page">
-          {/* Shared search + filter across all three stock sections */}
-          <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
-          <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
+          <div className="subtabs">
+            <button className={`subtab ${stockTab==="opening"?"on":""}`} onClick={()=>setStockTab("opening")}>Opening</button>
+            <button className={`subtab ${stockTab==="deliveries"?"on":""}`} onClick={()=>setStockTab("deliveries")}>Deliveries</button>
+            <button className={`subtab ${stockTab==="closing"?"on":""}`} onClick={()=>setStockTab("closing")}>Closing</button>
+          </div>
 
           {/* ── Opening Stock ── */}
-          <div className="card" style={{marginBottom:10,borderColor:"#7dd3fc22"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Opening Stock</div>
-              <span className="tag-b">Monthly</span>
-            </div>
-            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter once per month after your physical count.</div>
-            {(() => {
-              const filtered = filterIngs(ingredients, stockCat, stockSearch);
-              return filtered.length===0
-                ? <div className="no-results">No ingredients match</div>
-                : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                    {filtered.map(ing=>(
-                      <div key={ing.id}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                          <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                          <span className="tag-cat">{ing.category}</span>
+          {stockTab==="opening" && (
+            <div className="card" style={{borderColor:"#7dd3fc22"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Opening Stock</div>
+                <span className="tag-b">Monthly</span>
+              </div>
+              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter once per month after your physical count.</div>
+              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
+              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
+              {(() => {
+                const filtered = filterIngs(ingredients, stockCat, stockSearch);
+                return filtered.length===0
+                  ? <div className="no-results">No ingredients match</div>
+                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                      {filtered.map(ing=>(
+                        <div key={ing.id}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
+                            <span className="tag-cat">{ing.category}</span>
+                          </div>
+                          <NumInput
+                            value={openingStock[String(ing.id)]??""}
+                            suffix={`${ing.purchaseUnit}s`}
+                            placeholder="0"
+                            sublabel={openingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,openingStock[String(ing.id)]))}` : ""}
+                            onChange={val=>{
+                              if(!monthStart) setMonthStart(dateStr());
+                              setOpeningStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({openingStock:u}));return u;});
+                            }}
+                          />
                         </div>
-                        <NumInput
-                          value={openingStock[String(ing.id)]??""}
-                          suffix={`${ing.purchaseUnit}s`}
-                          placeholder="0"
-                          sublabel={openingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,openingStock[String(ing.id)]))}` : ""}
-                          onChange={val=>{
-                            if(!monthStart) setMonthStart(dateStr());
-                            setOpeningStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({openingStock:u}));return u;});
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>;
-            })()}
-          </div>
+                      ))}
+                    </div>;
+              })()}
+            </div>
+          )}
 
           {/* ── Deliveries ── */}
-          <div className="card" style={{marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Deliveries</div>
-              <span className="tag">Running total</span>
-            </div>
-            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Increase as stock arrives throughout the month.</div>
-            {(() => {
-              const filtered = filterIngs(ingredients, stockCat, stockSearch);
-              return filtered.length===0
-                ? <div className="no-results">No ingredients match</div>
-                : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                    {filtered.map(ing=>(
-                      <div key={ing.id}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                          <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                          <span className="tag-cat">{ing.category}</span>
+          {stockTab==="deliveries" && (
+            <div className="card">
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Deliveries</div>
+                <span className="tag">Running total</span>
+              </div>
+              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Increase as stock arrives throughout the month.</div>
+              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
+              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
+              {(() => {
+                const filtered = filterIngs(ingredients, stockCat, stockSearch);
+                return filtered.length===0
+                  ? <div className="no-results">No ingredients match</div>
+                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                      {filtered.map(ing=>(
+                        <div key={ing.id}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
+                            <span className="tag-cat">{ing.category}</span>
+                          </div>
+                          <NumInput
+                            value={deliveries[String(ing.id)]??""}
+                            suffix={`${ing.purchaseUnit}s`}
+                            placeholder="0"
+                            sublabel={deliveries[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,deliveries[String(ing.id)]))}` : ""}
+                            onChange={val=>{
+                              setDeliveries(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({deliveries:u}));return u;});
+                            }}
+                          />
                         </div>
-                        <NumInput
-                          value={deliveries[String(ing.id)]??""}
-                          suffix={`${ing.purchaseUnit}s`}
-                          placeholder="0"
-                          sublabel={deliveries[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,deliveries[String(ing.id)]))}` : ""}
-                          onChange={val=>{
-                            setDeliveries(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({deliveries:u}));return u;});
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>;
-            })()}
-          </div>
+                      ))}
+                    </div>;
+              })()}
+            </div>
+          )}
 
           {/* ── Closing Stock ── */}
-          <div className="card">
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Closing Stock</div>
-              <span className="tag-b">Monthly</span>
-            </div>
-            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter at month end. Used for variance report and next month's opening stock.</div>
-            {(() => {
-              const filtered = filterIngs(ingredients, stockCat, stockSearch);
-              return filtered.length===0
-                ? <div className="no-results">No ingredients match</div>
-                : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                    {filtered.map(ing=>(
-                      <div key={ing.id}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                          <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                          <span className="tag-cat">{ing.category}</span>
+          {stockTab==="closing" && (
+            <div className="card" style={{borderColor:"#7dd3fc22"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Closing Stock</div>
+                <span className="tag-b">Monthly</span>
+              </div>
+              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter at month end. Used for variance and next month's opening stock.</div>
+              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
+              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
+              {(() => {
+                const filtered = filterIngs(ingredients, stockCat, stockSearch);
+                return filtered.length===0
+                  ? <div className="no-results">No ingredients match</div>
+                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                      {filtered.map(ing=>(
+                        <div key={ing.id}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
+                            <span className="tag-cat">{ing.category}</span>
+                          </div>
+                          <NumInput
+                            value={closingStock[String(ing.id)]??""}
+                            suffix={`${ing.purchaseUnit}s`}
+                            placeholder="e.g. 1.5"
+                            sublabel={closingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,closingStock[String(ing.id)]))}` : ""}
+                            onChange={val=>{
+                              setClosingStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({closingStock:u}));return u;});
+                            }}
+                          />
                         </div>
-                        <NumInput
-                          value={closingStock[String(ing.id)]??""}
-                          suffix={`${ing.purchaseUnit}s`}
-                          placeholder="e.g. 1.5"
-                          sublabel={closingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,closingStock[String(ing.id)]))}` : ""}
-                          onChange={val=>{
-                            setClosingStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({closingStock:u}));return u;});
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>;
-            })()}
-            {ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="") && (
-              <button className="btn-blue" style={{width:"100%",marginTop:20}} onClick={()=>{ setTab("variance"); setVarTab("results"); }}>
-                View Variance Results →
-              </button>
-            )}
-          </div>
+                      ))}
+                    </div>;
+              })()}
+              {ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="") && (
+                <button className="btn-blue" style={{width:"100%",marginTop:20}} onClick={()=>{ setTab("variance"); setVarTab("results"); }}>
+                  View Variance Results →
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
