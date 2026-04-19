@@ -590,7 +590,7 @@ export default function BarBuddy() {
       --green:#15803D; --green-bg:#DCFCE7;
       --red:#DC2626;   --red-bg:#FEE2E2;
       --blue:#1D4ED8;  --blue-bg:#DBEAFE;
-      --bg:#F5F3EF; --surface:#FFFFFF; --surface2:#F8F6F2;
+      --bg:#F0EDE8; --surface:#FFFFFF; --surface2:#F5F2EE;
       --border:#E5E0D8; --border-light:#D1CBC0;
       --text:#1C1917; --text-mid:#6B6460; --text-dim:#A8A29E;
       --input-bg:#FFFFFF;
@@ -598,85 +598,105 @@ export default function BarBuddy() {
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
       --font-serif:'Cormorant Garant',Georgia,serif;
       --font-mono:'IBM Plex Mono','Courier New',monospace;
-      --radius:16px; --radius-sm:10px; --nav-h:72px;
+      --radius:14px; --radius-sm:10px;
+      --sidebar-w:240px;
     }
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    body{background:var(--bg)}
-    ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);min-height:100vh;}
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
 
-    .page{padding:16px;padding-bottom:calc(var(--nav-h) + 24px);max-width:600px;margin:0 auto}
+    /* ── Sidebar ── */
+    .sidebar{
+      position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);
+      background:var(--surface);border-right:1px solid var(--border);
+      display:flex;flex-direction:column;z-index:50;
+      box-shadow:2px 0 12px rgba(0,0,0,0.04);
+    }
+    .sidebar-logo{padding:28px 24px 20px;}
+    .sidebar-nav{flex:1;padding:8px 12px;overflow-y:auto;}
+    .sidebar-footer{padding:16px 12px;border-top:1px solid var(--border);}
 
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm)}
-    .card+.card{margin-top:10px}
+    .nav-item{
+      display:flex;align-items:center;gap:12px;width:100%;
+      padding:11px 14px;border-radius:10px;border:none;
+      background:none;color:var(--text-mid);cursor:pointer;
+      font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;
+      text-transform:uppercase;text-align:left;
+      transition:all .15s;margin-bottom:2px;
+    }
+    .nav-item:hover{background:var(--surface2);color:var(--text);}
+    .nav-item.active{background:var(--accent-light);color:var(--accent);font-weight:500;}
+    .nav-item svg{flex-shrink:0;opacity:.7;}
+    .nav-item.active svg{opacity:1;}
 
-    .sect{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;display:block}
+    /* ── Main content ── */
+    .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;}
+    .page{padding:32px 40px;max-width:960px;width:100%;}
 
-    .row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border)}
-    .row:last-child{border-bottom:none}.row:first-child{padding-top:0}
+    /* ── Cards ── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
+    .card+.card{margin-top:12px;}
 
-    /* Status tags */
-    .tag  {display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #F59E0B40}
-    .tag-g{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #16A34A40}
-    .tag-r{display:inline-flex;align-items:center;gap:4px;background:var(--red-bg);color:var(--red);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #DC262640}
-    .tag-b{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg);color:var(--blue);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #1D4ED840}
-    .tag-d{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);color:var(--text-dim);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border)}
+    .sect{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;display:block;}
+    .row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);}
+    .row:last-child{border-bottom:none;}.row:first-child{padding-top:0;}
 
-    /* Buttons */
-    .btn-primary{background:var(--text);color:#fff;font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:15px 24px;border-radius:var(--radius-sm);border:none;cursor:pointer;width:100%;transition:background .15s;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
-    .btn-primary:hover{background:#374151}
-    .btn-secondary{background:transparent;color:var(--text);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:14px 24px;border-radius:var(--radius-sm);border:1.5px solid var(--border-light);cursor:pointer;transition:all .15s}
-    .btn-secondary:hover{background:var(--surface2);border-color:var(--text-dim)}
-    .btn-blue{background:var(--accent-light);color:var(--accent);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:14px 24px;border-radius:var(--radius-sm);border:1.5px solid #BFD7F5;cursor:pointer;transition:all .15s;font-weight:500}
-    .btn-blue:hover{background:#DBEAFE}
-    .btn-ghost{background:transparent;border:none;color:var(--red);font-family:var(--font-mono);font-size:11px;cursor:pointer;padding:8px 4px;opacity:.7}
-    .btn-ghost:hover{opacity:1}
-    .btn-icon{background:var(--surface2);border:1px solid var(--border);color:var(--text-mid);border-radius:8px;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
-    .btn-icon:hover{background:var(--surface);border-color:var(--border-light);color:var(--text);box-shadow:var(--shadow-sm)}
+    /* ── Tags ── */
+    .tag  {display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #F59E0B40;}
+    .tag-g{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #16A34A40;}
+    .tag-r{display:inline-flex;align-items:center;gap:4px;background:var(--red-bg);color:var(--red);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #DC262640;}
+    .tag-b{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg);color:var(--blue);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #1D4ED840;}
+    .tag-d{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);color:var(--text-dim);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
 
-    /* Layout */
-    .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-    .pill{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
-    .hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+    /* ── Buttons ── */
+    .btn-primary{background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:12px 20px;border-radius:var(--radius-sm);border:none;cursor:pointer;width:100%;transition:background .15s;box-shadow:0 2px 8px rgba(44,82,130,0.25);}
+    .btn-primary:hover{background:#1E3A5F;}
+    .btn-secondary{background:transparent;color:var(--text);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:11px 20px;border-radius:var(--radius-sm);border:1.5px solid var(--border-light);cursor:pointer;transition:all .15s;width:100%;}
+    .btn-secondary:hover{background:var(--surface2);border-color:var(--text-dim);}
+    .btn-blue{background:var(--accent-light);color:var(--accent);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:11px 20px;border-radius:var(--radius-sm);border:1.5px solid #BFD7F5;cursor:pointer;transition:all .15s;font-weight:500;}
+    .btn-blue:hover{background:#DBEAFE;}
+    .btn-ghost{background:transparent;border:none;color:var(--red);font-family:var(--font-mono);font-size:11px;cursor:pointer;padding:8px 4px;opacity:.7;}
+    .btn-ghost:hover{opacity:1;}
+    .btn-icon{background:var(--surface2);border:1px solid var(--border);color:var(--text-mid);border-radius:8px;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+    .btn-icon:hover{background:var(--surface);border-color:var(--border-light);color:var(--text);box-shadow:var(--shadow-sm);}
 
-    /* Bottom nav */
-    .nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:50;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 12px rgba(0,0,0,0.06)}
-    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--text-dim);transition:color .15s;padding:8px 0;position:relative}
-    .nav-item.active{color:var(--accent)}
-    .nav-item.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
-    .nav-item span{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+    /* ── Layout helpers ── */
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+    .g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+    .pill{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
+    .hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
 
-    /* Header */
-    .header{padding:16px 16px 0;max-width:600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+    /* ── Modals (centered dialog on desktop) ── */
+    .overlay{position:fixed;inset:0;background:#00000055;z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+    .sheet{background:var(--surface);border-radius:var(--radius);padding:32px;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,0.18);border:1px solid var(--border);}
+    .sheet-handle{display:none;}
 
-    /* Modals */
-    .overlay{position:fixed;inset:0;background:#00000066;z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
-    .sheet{background:var(--surface);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:600px;box-shadow:0 -4px 32px rgba(0,0,0,0.12)}
-    .sheet-handle{width:36px;height:4px;background:var(--border-light);border-radius:2px;margin:0 auto 20px}
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;font-family:var(--font-mono);font-size:12px;padding:12px 20px;border-radius:var(--radius-sm);z-index:200;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.2);}
 
-    /* Toast */
-    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-family:var(--font-mono);font-size:12px;padding:12px 20px;border-radius:var(--radius-sm);z-index:200;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+    /* ── Misc ── */
+    .cbar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-mid);margin-top:8px;line-height:1.6;}
+    .cbar b{color:var(--accent);font-weight:500;}
+    .alert-banner{background:linear-gradient(135deg,#FEF9E8,#FFF8F0);border:1px solid #F59E0B60;border-radius:var(--radius);padding:20px;}
+    .field{margin-bottom:14px;}
+    .field-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;display:block;}
+    .subtabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;}
+    .subtab{background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:10px 18px;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap;}
+    .subtab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+    .wk{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;}
+    .no-results{text-align:center;padding:48px 16px;color:var(--text-dim);font-size:13px;}
+    .ing-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0 12px 12px;border-bottom:1px solid var(--border);border-left:3px solid transparent;margin-left:-4px;transition:background .1s;}
+    .ing-row:last-child{border-bottom:none;}
+    .ing-row:hover{background:var(--surface2);border-radius:0 8px 8px 0;}
 
-    /* Misc */
-    .cbar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-mid);margin-top:8px;line-height:1.6}
-    .cbar b{color:var(--accent);font-weight:500}
-    .alert-banner{background:linear-gradient(135deg,#FEF9E8,#FFF8F0);border:1px solid #F59E0B60;border-radius:var(--radius);padding:18px}
-    .field{margin-bottom:14px}
-    .field-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;display:block}
-    .subtabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:18px}
-    .subtab{background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
-    .subtab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
-    .wk{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px}
-    .no-results{text-align:center;padding:32px 16px;color:var(--text-dim);font-size:13px}
+    /* ── Page header bar ── */
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+    .page-title{font-family:var(--font-serif);font-size:28px;font-weight:700;color:var(--text);letter-spacing:-.01em;}
 
-    /* Category colour left border on ingredient rows */
-    .ing-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0 12px 12px;border-bottom:1px solid var(--border);border-left:3px solid transparent;margin-left:-4px;transition:background .1s}
-    .ing-row:last-child{border-bottom:none}
-    .ing-row:hover{background:var(--surface2);border-radius:0 8px 8px 0}
-
-    /* Save indicator */
     @keyframes savePop{0%{transform:scale(0.8);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
-    .save-icon{animation:savePop .3s ease}
+    .save-icon{animation:savePop .3s ease;}
   `;
 
   const navItems = [
@@ -688,33 +708,64 @@ export default function BarBuddy() {
   ];
 
   return (
-    <div style={{background:"var(--bg)",minHeight:"100vh",fontFamily:"var(--font-mono)",color:"var(--text)"}}>
+    <div style={{display:"flex",minHeight:"100vh",background:"var(--bg)",fontFamily:"var(--font-mono)",color:"var(--text)"}}>
       <style>{css}</style>
 
-      {/* HEADER */}
-      <div style={{background:"var(--surface)",borderBottom:"1px solid var(--border)",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-        <div className="header" style={{paddingTop:16,paddingBottom:14}}>
-          <div>
-            <div style={{fontFamily:"var(--font-serif)",fontSize:26,fontWeight:700,color:"var(--accent)",lineHeight:1,letterSpacing:"-.01em"}}>Bar Buddy</div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",letterSpacing:".12em",textTransform:"uppercase",marginTop:3}}>
-              {monthStart ? `Month from ${monthStart} · Wk ${weekNum}` : "Set up your opening stock to begin"}
-            </div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
-            {/* Save indicator */}
-            <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,color:"var(--green)",fontFamily:"var(--font-mono)",letterSpacing:".06em"}}>
-              <svg className="save-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Saved
-            </span>
-            {weekTotal>0&&<button className="tag" style={{cursor:"pointer",border:"none",background:"#FEF9E8"}} onClick={()=>setModal("logWeek")}>Log Wk {weekNum}</button>}
-            <button className="btn-blue" style={{padding:"9px 14px",fontSize:11}} onClick={()=>setModal("newMonth")}>New Month</button>
+      {/* ══ SIDEBAR ══ */}
+      <aside className="sidebar">
+        {/* Logo */}
+        <div className="sidebar-logo">
+          <div style={{fontFamily:"var(--font-serif)",fontSize:24,fontWeight:700,color:"var(--accent)",letterSpacing:"-.01em",lineHeight:1}}>Bar Buddy</div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".14em",textTransform:"uppercase",marginTop:5}}>
+            {monthStart ? `${monthStart} · Wk ${weekNum}` : "Set opening stock to begin"}
           </div>
         </div>
-      </div>
+
+        {/* Nav items */}
+        <nav className="sidebar-nav">
+          {navItems.map(item=>(
+            <button key={item.id} className={`nav-item ${tab===item.id?"active":""}`}
+              onClick={()=>setTab(item.id)}>
+              <item.icon/>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer actions */}
+        <div className="sidebar-footer">
+          {weekTotal>0&&(
+            <button onClick={()=>setModal("logWeek")} style={{
+              width:"100%",marginBottom:8,padding:"10px 14px",borderRadius:10,
+              border:"1.5px solid var(--gold-dim)",background:"var(--gold-bg)",
+              color:"var(--gold)",fontFamily:"var(--font-mono)",fontSize:11,
+              letterSpacing:".06em",cursor:"pointer",textAlign:"left",
+              display:"flex",alignItems:"center",justifyContent:"space-between"
+            }}>
+              <span>Log Week {weekNum}</span>
+              <span style={{fontWeight:600}}>{weekTotal} drinks</span>
+            </button>
+          )}
+          <button className="btn-blue" style={{width:"100%",marginBottom:12}} onClick={()=>setModal("newMonth")}>
+            New Month
+          </button>
+          <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"center"}}>
+            <svg className="save-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",letterSpacing:".08em"}}>All changes saved</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* ══ MAIN CONTENT ══ */}
+      <main className="main">
 
       {/* ══ HOME ══ */}
       {tab==="home" && (
         <div className="page">
+          <div className="page-header">
+            <div className="page-title">Dashboard</div>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>{monthStart ? `Month from ${monthStart}` : "No month started"}</span>
+          </div>
           {orderItems.length>0 ? (
             <div className="alert-banner" style={{marginBottom:10}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
@@ -832,6 +883,9 @@ export default function BarBuddy() {
       {/* ══ STOCK ══ */}
       {tab==="stock" && (
         <div className="page">
+          <div className="page-header">
+            <div className="page-title">Stock Count</div>
+          </div>
           <div className="subtabs">
             <button className={`subtab ${stockTab==="opening"?"on":""}`} onClick={()=>setStockTab("opening")}>Opening</button>
             <button className={`subtab ${stockTab==="deliveries"?"on":""}`} onClick={()=>setStockTab("deliveries")}>Deliveries</button>
@@ -960,17 +1014,14 @@ export default function BarBuddy() {
       {/* ══ ORDERS ══ */}
       {tab==="orders" && (
         <div className="page">
-          <div className="card" style={{marginBottom:10,borderColor:"#c9a96e44"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--gold)"}}>Order Suggestion</div>
-              <button onClick={()=>setOrderShowAll(p=>!p)} style={{background:"none",border:"1px solid var(--border)",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:".08em",padding:"5px 10px",borderRadius:20,cursor:"pointer"}}>
-                {orderShowAll ? "Needs ordering only" : "Show all"}
-              </button>
-            </div>
-            <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Opening + deliveries − sales = remaining → vs par → order in whole units</div>
-            {weekTotal>0&&<div style={{marginTop:10,fontSize:11,color:"#fb923c",background:"#fb923c0a",border:"1px solid #fb923c22",borderRadius:10,padding:"10px 14px"}}>⚠ {weekTotal} drinks not yet logged this week</div>}
+          <div className="page-header">
+            <div className="page-title">Order Report</div>
+            <button onClick={()=>setOrderShowAll(p=>!p)} style={{background:"none",border:"1px solid var(--border)",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:11,padding:"7px 14px",borderRadius:20,cursor:"pointer"}}>
+              {orderShowAll ? "Needs ordering only" : "Show all"}
+            </button>
           </div>
 
+          {weekTotal>0&&<div style={{marginBottom:12,fontSize:11,color:"#92400E",background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:10,padding:"10px 14px"}}>⚠ {weekTotal} drinks not yet logged — order figures may be understated</div>}
           <SearchBar value={orderSearch} onChange={setOrderSearch} placeholder="Search ingredients..." />
           <CategoryFilter
             selected={orderCat} onChange={setOrderCat}
@@ -1033,6 +1084,9 @@ export default function BarBuddy() {
       {/* ══ VARIANCE ══ */}
       {tab==="variance" && (
         <div className="page">
+          <div className="page-header">
+            <div className="page-title">Variance</div>
+          </div>
           <div className="subtabs">
             <button className={`subtab ${varTab==="sales"?"on":""}`} onClick={()=>setVarTab("sales")}>
               Sales{weekTotal>0?` (${weekTotal})`:""}</button>
@@ -1208,6 +1262,9 @@ export default function BarBuddy() {
       {/* ══ SETUP ══ */}
       {tab==="setup" && (
         <div className="page">
+          <div className="page-header">
+            <div className="page-title">Setup</div>
+          </div>
           <div className="subtabs">
             <button className={`subtab ${subTab==="ingredients"?"on":""}`} onClick={()=>setSubTab("ingredients")}>Ingredients</button>
             <button className={`subtab ${subTab==="recipes"?"on":""}`} onClick={()=>setSubTab("recipes")}>Recipes</button>
@@ -1619,16 +1676,6 @@ export default function BarBuddy() {
         </div>
       )}
 
-      {/* BOTTOM NAV */}
-      <nav className="nav">
-        {navItems.map(item=>(
-          <button key={item.id} className={`nav-item ${tab===item.id?"active":""}`} onClick={()=>setTab(item.id)}>
-            <item.icon/>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
       {/* LOG WEEK SHEET */}
       {modal==="logWeek"&&(
         <div className="overlay" onClick={()=>setModal(null)}>
@@ -1684,6 +1731,7 @@ export default function BarBuddy() {
       )}
 
       {toast&&<div className="toast">{toast}</div>}
+      </main>
     </div>
   );
 }
