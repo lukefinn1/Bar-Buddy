@@ -310,8 +310,7 @@ const Icon = {
 export default function BarBuddy() {
   const [tab,      setTab]      = useState("home");
   const [subTab,   setSubTab]   = useState("ingredients"); // Setup sub-tabs
-  const [stockTab, setStockTab] = useState("opening");     // Stock sub-tabs: opening | deliveries | sales
-  const [varTab,   setVarTab]   = useState("closing");     // Variance sub-tabs: closing | variance
+  const [varTab,   setVarTab]   = useState("sales");       // Variance sub-tabs: sales | results
   const [loaded, setLoaded] = useState(false);
   const [toast,  setToast]  = useState("");
   const [modal,  setModal]  = useState(null);
@@ -664,150 +663,117 @@ export default function BarBuddy() {
         </div>
       )}
 
-      {/* ══ STOCK & SALES ══ */}
+      {/* ══ STOCK ══ */}
       {tab==="stock" && (
         <div className="page">
-          <div className="subtabs">
-            <button className={`subtab ${stockTab==="opening"?"on":""}`} onClick={()=>setStockTab("opening")}>Opening Stock</button>
-            <button className={`subtab ${stockTab==="deliveries"?"on":""}`} onClick={()=>setStockTab("deliveries")}>Deliveries</button>
-            <button className={`subtab ${stockTab==="sales"?"on":""}`} onClick={()=>setStockTab("sales")}>
-              Sales{weekTotal>0?` (${weekTotal})`:""}</button>
+          {/* Shared search + filter across all three stock sections */}
+          <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
+          <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
+
+          {/* ── Opening Stock ── */}
+          <div className="card" style={{marginBottom:10,borderColor:"#7dd3fc22"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Opening Stock</div>
+              <span className="tag-b">Monthly</span>
+            </div>
+            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter once per month after your physical count.</div>
+            {(() => {
+              const filtered = filterIngs(ingredients, stockCat, stockSearch);
+              return filtered.length===0
+                ? <div className="no-results">No ingredients match</div>
+                : <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                    {filtered.map(ing=>(
+                      <div key={ing.id}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                          <label className="field-label" style={{margin:0}}>{ing.name}</label>
+                          <span className="tag-cat">{ing.category}</span>
+                        </div>
+                        <NumInput
+                          value={openingStock[String(ing.id)]??""}
+                          suffix={`${ing.purchaseUnit}s`}
+                          placeholder="0"
+                          sublabel={openingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,openingStock[String(ing.id)]))}` : ""}
+                          onChange={val=>{
+                            if(!monthStart) setMonthStart(dateStr());
+                            setOpeningStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({openingStock:u}));return u;});
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>;
+            })()}
           </div>
 
-          {/* ── Opening stock ── */}
-          {stockTab==="opening" && (
-            <div className="card" style={{borderColor:"#7dd3fc22"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Opening Stock</div>
-                <span className="tag-b">Monthly</span>
-              </div>
-              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter once per month after your physical count.</div>
-              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
-              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
-              {(() => {
-                const filtered = filterIngs(ingredients, stockCat, stockSearch);
-                return filtered.length===0
-                  ? <div className="no-results">No ingredients match</div>
-                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {filtered.map(ing=>(
-                        <div key={ing.id}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <span className="tag-cat">{ing.category}</span>
-                          </div>
-                          <NumInput
-                            value={openingStock[String(ing.id)]??""}
-                            suffix={`${ing.purchaseUnit}s`}
-                            placeholder="0"
-                            sublabel={openingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,openingStock[String(ing.id)]))}` : ""}
-                            onChange={val=>{
-                              if(!monthStart) setMonthStart(dateStr());
-                              setOpeningStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({openingStock:u}));return u;});
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>;
-              })()}
-            </div>
-          )}
-
           {/* ── Deliveries ── */}
-          {stockTab==="deliveries" && (
-            <div className="card">
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Deliveries</div>
-                <span className="tag">Running total</span>
-              </div>
-              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Increase as stock arrives throughout the month.</div>
-              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
-              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
-              {(() => {
-                const filtered = filterIngs(ingredients, stockCat, stockSearch);
-                return filtered.length===0
-                  ? <div className="no-results">No ingredients match</div>
-                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {filtered.map(ing=>(
-                        <div key={ing.id}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <span className="tag-cat">{ing.category}</span>
-                          </div>
-                          <NumInput
-                            value={deliveries[String(ing.id)]??""}
-                            suffix={`${ing.purchaseUnit}s`}
-                            placeholder="0"
-                            sublabel={deliveries[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,deliveries[String(ing.id)]))}` : ""}
-                            onChange={val=>{
-                              setDeliveries(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({deliveries:u}));return u;});
-                            }}
-                          />
+          <div className="card" style={{marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Deliveries</div>
+              <span className="tag">Running total</span>
+            </div>
+            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Increase as stock arrives throughout the month.</div>
+            {(() => {
+              const filtered = filterIngs(ingredients, stockCat, stockSearch);
+              return filtered.length===0
+                ? <div className="no-results">No ingredients match</div>
+                : <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                    {filtered.map(ing=>(
+                      <div key={ing.id}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                          <label className="field-label" style={{margin:0}}>{ing.name}</label>
+                          <span className="tag-cat">{ing.category}</span>
                         </div>
-                      ))}
-                    </div>;
-              })()}
-            </div>
-          )}
-
-          {/* ── Weekly sales ── */}
-          {stockTab==="sales" && (
-            <div>
-              <div className="card" style={{marginBottom:10}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                  <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Week {weekNum} Sales</div>
-                  <span className="tag-d">Not logged</span>
-                </div>
-                <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter this week's sales then log them.</div>
-                <div style={{marginBottom:14}}>
-                  <label className="field-label">Import CSV from POS</label>
-                  <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:8}}>Format: DrinkName, Quantity</div>
-                  <input type="file" accept=".csv" style={{color:"var(--text-mid)",fontSize:12,fontFamily:"var(--font-mono)"}} onChange={handleCSV} />
-                  {csvError&&<div style={{color:"var(--red)",fontSize:11,marginTop:6}}>{csvError}</div>}
-                </div>
-                <hr className="hr"/>
-                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
-                  {recipes.map(recipe=>(
-                    <div key={recipe.id}>
-                      <label className="field-label">{recipe.name}</label>
-                      <input type="text" inputMode="decimal" placeholder="0 sold"
-                        autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
-                        value={weekSales[recipe.id]??""}
-                        onChange={e=>setWeekSales(prev=>({...prev,[recipe.id]:e.target.value}))}
-                        style={{background:"var(--input-bg)",border:"1.5px solid var(--border)",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:15,padding:"14px 16px",borderRadius:10,width:"100%",outline:"none",WebkitAppearance:"none"}}
-                        onFocus={e=>e.target.style.borderColor="var(--gold)"}
-                        onBlur={e=>e.target.style.borderColor="var(--border)"}
-                      />
-                    </div>
-                  ))}
-                  {recipes.length===0&&<div style={{fontSize:13,color:"var(--text-dim)"}}>Add recipes in Setup first.</div>}
-                </div>
-                {weekTotal>0&&<button className="btn-primary" onClick={()=>setModal("logWeek")}>Log Week {weekNum} — {weekTotal} drinks</button>}
-              </div>
-
-              {weeklyLog.length>0&&(
-                <div className="card">
-                  <span className="sect">Monthly Sales Log</span>
-                  {weeklyLog.map((entry,i)=>(
-                    <div key={i} className="wk">
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                        <span style={{fontSize:12,color:"var(--text-mid)"}}>{entry.label}</span>
-                        <span style={{fontSize:11,color:"var(--text-dim)"}}>{Object.values(entry.sales).reduce((a,b)=>a+num(b),0)} drinks</span>
+                        <NumInput
+                          value={deliveries[String(ing.id)]??""}
+                          suffix={`${ing.purchaseUnit}s`}
+                          placeholder="0"
+                          sublabel={deliveries[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,deliveries[String(ing.id)]))}` : ""}
+                          onChange={val=>{
+                            setDeliveries(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({deliveries:u}));return u;});
+                          }}
+                        />
                       </div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                        {Object.entries(entry.sales).filter(([,v])=>num(v)>0).map(([rid,qty])=>{
-                          const r=recipes.find(x=>x.id===parseInt(rid));
-                          return r?<span key={rid} className="tag">{r.name}: {qty}</span>:null;
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{fontSize:11,color:"var(--text-dim)",paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                    Monthly total: <span style={{color:"var(--gold)"}}>{totalMonthly} drinks</span> across {weeklyLog.length} week{weeklyLog.length!==1?"s":""}
-                  </div>
-                </div>
-              )}
+                    ))}
+                  </div>;
+            })()}
+          </div>
+
+          {/* ── Closing Stock ── */}
+          <div className="card">
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Closing Stock</div>
+              <span className="tag-b">Monthly</span>
             </div>
-          )}
+            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter at month end. Used for variance report and next month's opening stock.</div>
+            {(() => {
+              const filtered = filterIngs(ingredients, stockCat, stockSearch);
+              return filtered.length===0
+                ? <div className="no-results">No ingredients match</div>
+                : <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                    {filtered.map(ing=>(
+                      <div key={ing.id}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                          <label className="field-label" style={{margin:0}}>{ing.name}</label>
+                          <span className="tag-cat">{ing.category}</span>
+                        </div>
+                        <NumInput
+                          value={closingStock[String(ing.id)]??""}
+                          suffix={`${ing.purchaseUnit}s`}
+                          placeholder="e.g. 1.5"
+                          sublabel={closingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,closingStock[String(ing.id)]))}` : ""}
+                          onChange={val=>{
+                            setClosingStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({closingStock:u}));return u;});
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>;
+            })()}
+            {ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="") && (
+              <button className="btn-blue" style={{width:"100%",marginTop:20}} onClick={()=>{ setTab("variance"); setVarTab("results"); }}>
+                View Variance Results →
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -873,63 +839,82 @@ export default function BarBuddy() {
       {tab==="variance" && (
         <div className="page">
           <div className="subtabs">
-            <button className={`subtab ${varTab==="closing"?"on":""}`} onClick={()=>setVarTab("closing")}>Closing Count</button>
+            <button className={`subtab ${varTab==="sales"?"on":""}`} onClick={()=>setVarTab("sales")}>
+              Sales{weekTotal>0?` (${weekTotal})`:""}</button>
             <button className={`subtab ${varTab==="results"?"on":""}`} onClick={()=>setVarTab("results")}>
               Results{ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="")?" ●":""}
             </button>
           </div>
 
-          {/* ── Closing count ── */}
-          {varTab==="closing" && (
-            <div className="card">
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Closing Count</div>
-                <span className="tag-b">Monthly</span>
+          {/* ── Sales ── */}
+          {varTab==="sales" && (
+            <div>
+              <div className="card" style={{marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                  <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Week {weekNum} Sales</div>
+                  <span className="tag-d">Not logged</span>
+                </div>
+                <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter this week's sales then log them to add to the monthly total.</div>
+                <div style={{marginBottom:14}}>
+                  <label className="field-label">Import CSV from POS</label>
+                  <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:8}}>Format: DrinkName, Quantity</div>
+                  <input type="file" accept=".csv" style={{color:"var(--text-mid)",fontSize:12,fontFamily:"var(--font-mono)"}} onChange={handleCSV} />
+                  {csvError&&<div style={{color:"var(--red)",fontSize:11,marginTop:6}}>{csvError}</div>}
+                </div>
+                <hr className="hr"/>
+                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+                  {recipes.map(recipe=>(
+                    <div key={recipe.id}>
+                      <label className="field-label">{recipe.name}</label>
+                      <input type="text" inputMode="decimal" placeholder="0 sold"
+                        autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
+                        value={weekSales[recipe.id]??""}
+                        onChange={e=>setWeekSales(prev=>({...prev,[recipe.id]:e.target.value}))}
+                        style={{background:"var(--input-bg)",border:"1.5px solid var(--border)",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:15,padding:"14px 16px",borderRadius:10,width:"100%",outline:"none",WebkitAppearance:"none"}}
+                        onFocus={e=>e.target.style.borderColor="var(--gold)"}
+                        onBlur={e=>e.target.style.borderColor="var(--border)"}
+                      />
+                    </div>
+                  ))}
+                  {recipes.length===0&&<div style={{fontSize:13,color:"var(--text-dim)"}}>Add recipes in Setup first.</div>}
+                </div>
+                {weekTotal>0&&<button className="btn-primary" onClick={()=>setModal("logWeek")}>Log Week {weekNum} — {weekTotal} drinks</button>}
               </div>
-              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter your end-of-month physical count. Then check Results.</div>
-              <SearchBar value={varSearch} onChange={setVarSearch} placeholder="Search ingredients..." />
-              <CategoryFilter selected={varCat} onChange={setVarCat} counts={catCounts(ingredients)} />
-              {(() => {
-                const filtered = filterIngs(ingredients, varCat, varSearch);
-                return filtered.length===0
-                  ? <div className="no-results">No ingredients match</div>
-                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {filtered.map(ing=>(
-                        <div key={ing.id}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <span className="tag-cat">{ing.category}</span>
-                          </div>
-                          <NumInput
-                            value={closingStock[String(ing.id)]??""}
-                            suffix={`${ing.purchaseUnit}s`}
-                            placeholder="e.g. 1.5"
-                            sublabel={closingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit,toBase(ing,closingStock[String(ing.id)]))}` : ""}
-                            onChange={val=>{
-                              setClosingStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({closingStock:u}));return u;});
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>;
-              })()}
-              {ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="") && (
-                <button className="btn-blue" style={{width:"100%",marginTop:20}} onClick={()=>setVarTab("results")}>
-                  View Results →
-                </button>
+              {weeklyLog.length>0&&(
+                <div className="card">
+                  <span className="sect">Monthly Sales Log</span>
+                  {weeklyLog.map((entry,i)=>(
+                    <div key={i} className="wk">
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                        <span style={{fontSize:12,color:"var(--text-mid)"}}>{entry.label}</span>
+                        <span style={{fontSize:11,color:"var(--text-dim)"}}>{Object.values(entry.sales).reduce((a,b)=>a+num(b),0)} drinks</span>
+                      </div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {Object.entries(entry.sales).filter(([,v])=>num(v)>0).map(([rid,qty])=>{
+                          const r=recipes.find(x=>x.id===parseInt(rid));
+                          return r?<span key={rid} className="tag">{r.name}: {qty}</span>:null;
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{fontSize:11,color:"var(--text-dim)",paddingTop:10,borderTop:"1px solid var(--border)"}}>
+                    Monthly total: <span style={{color:"var(--gold)"}}>{totalMonthly} drinks</span> across {weeklyLog.length} week{weeklyLog.length!==1?"s":""}
+                  </div>
+                </div>
               )}
             </div>
           )}
 
-          {/* ── Variance results ── */}
+          {/* ── Variance Results ── */}
           {varTab==="results" && (
             <div>
               {!ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="") ? (
                 <div className="card">
                   <div className="no-results" style={{padding:"40px 16px"}}>
                     <div style={{marginBottom:8}}>No closing counts entered yet</div>
-                    <button className="btn-secondary" style={{margin:"0 auto",display:"block"}} onClick={()=>setVarTab("closing")}>
-                      Go to Closing Count
+                    <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:16}}>Enter closing stock on the Stock page first</div>
+                    <button className="btn-secondary" style={{margin:"0 auto",display:"block"}} onClick={()=>setTab("stock")}>
+                      Go to Stock →
                     </button>
                   </div>
                 </div>
@@ -940,32 +925,48 @@ export default function BarBuddy() {
                   {filterIngs(ingredients, varCat, varSearch)
                     .filter(item=>closingStock[String(item.id)]!==undefined&&closingStock[String(item.id)]!=="")
                     .map(item=>{
-                      const tP=toPurch(item,theoClose[item.id]??0);
-                      const aP=num(closingStock[String(item.id)]);
-                      const vP=aP-tP;
-                      const pct=tP!==0?((vP/tP)*100).toFixed(1):"—";
-                      const isNeg=vP<-0.1, isPos=vP>0.1;
+                      const tP  = toPurch(item, theoClose[item.id]??0);
+                      const aP  = num(closingStock[String(item.id)]);
+                      const vP  = aP - tP;
+                      const pct = tP!==0 ? ((vP/tP)*100).toFixed(1) : "—";
+                      const isNeg = vP < -0.1, isPos = vP > 0.1;
                       return (
                         <div key={item.id} className="card" style={{marginBottom:8,borderColor:isNeg?"var(--red-bg)":isPos?"var(--green-bg)":"var(--border)"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
                             <div style={{flex:1}}>
-                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                                 <span style={{fontFamily:"var(--font-serif)",fontSize:15,fontWeight:600}}>{item.name}</span>
                                 <span className="tag-cat">{item.category}</span>
                               </div>
-                              <div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
-                                Theoretical: <span style={{color:"var(--text-mid)"}}>{fmtP(item.purchaseUnit,tP)}</span>
-                                &nbsp;·&nbsp; Actual: <span style={{color:"var(--text)"}}>{fmtP(item.purchaseUnit,aP)}</span>
+                              {/* Bottle quantities — prominent */}
+                              <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,fontFamily:"var(--font-mono)"}}>
+                                <div style={{display:"flex",justifyContent:"space-between",color:"var(--text-dim)"}}>
+                                  <span>Theoretical</span>
+                                  <span style={{color:"var(--text-mid)"}}>{fmtP(item.purchaseUnit, tP)} {item.purchaseUnit}s</span>
+                                </div>
+                                <div style={{display:"flex",justifyContent:"space-between",color:"var(--text-dim)"}}>
+                                  <span>Actual count</span>
+                                  <span style={{color:"var(--text)"}}>{fmtP(item.purchaseUnit, aP)} {item.purchaseUnit}s</span>
+                                </div>
+                                <div style={{display:"flex",justifyContent:"space-between",paddingTop:4,marginTop:2,borderTop:"1px solid var(--border)",color:"var(--text-dim)"}}>
+                                  <span>Difference</span>
+                                  <span style={{color:isNeg?"var(--red)":isPos?"var(--green)":"var(--text-dim)",fontWeight:500}}>
+                                    {vP>0?"+":""}{fmtP(item.purchaseUnit, vP)} {item.purchaseUnit}s
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                            <div style={{textAlign:"right"}}>
-                              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:700,color:isNeg?"var(--red)":isPos?"var(--green)":"var(--text-dim)"}}>
-                                {vP>0?"+":""}{fmtP(item.purchaseUnit,vP)}
+                            <div style={{textAlign:"right",minWidth:70,paddingTop:22}}>
+                              <div style={{fontFamily:"var(--font-serif)",fontSize:26,fontWeight:700,color:isNeg?"var(--red)":isPos?"var(--green)":"var(--text-dim)",lineHeight:1}}>
+                                {vP>0?"+":""}{Math.abs(vP).toFixed(2)}
                               </div>
-                              <div style={{fontSize:10,color:"var(--text-dim)",marginTop:2,marginBottom:4}}>{pct}%</div>
-                              {isNeg&&<span className="tag-r">Investigate ⚠</span>}
-                              {isPos&&<span className="tag-g">Surplus</span>}
-                              {!isNeg&&!isPos&&<span className="tag-d">On Track</span>}
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",marginTop:2}}>{item.purchaseUnit}s</div>
+                              <div style={{fontSize:10,color:"var(--text-dim)",marginTop:2}}>{pct}%</div>
+                              <div style={{marginTop:6}}>
+                                {isNeg&&<span className="tag-r">Investigate ⚠</span>}
+                                {isPos&&<span className="tag-g">Surplus</span>}
+                                {!isNeg&&!isPos&&<span className="tag-d">On Track</span>}
+                              </div>
                             </div>
                           </div>
                         </div>
