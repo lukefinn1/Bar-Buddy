@@ -6,6 +6,38 @@ const CATEGORIES = [
   "Bitters", "Juice & Cordials", "Syrups", "Garnishes", "Dry Goods", "Other"
 ];
 
+// Each category gets a unique vivid colour identity used throughout the UI
+const CAT_COLOR = {
+  "Spirits":          { bg:"#FEF3C7", text:"#92400E", border:"#FCD34D", dot:"#B45309" },
+  "Liqueurs":         { bg:"#EDE9FE", text:"#5B21B6", border:"#C4B5FD", dot:"#7C3AED" },
+  "Wine":             { bg:"#FEE2E2", text:"#7F1D1D", border:"#FCA5A5", dot:"#991B1B" },
+  "Beer & Cider":     { bg:"#FFFBEB", text:"#78350F", border:"#FDE68A", dot:"#D97706" },
+  "Bitters":          { bg:"#F0FDF4", text:"#14532D", border:"#86EFAC", dot:"#166534" },
+  "Juice & Cordials": { bg:"#FFF7ED", text:"#9A3412", border:"#FDBA74", dot:"#EA580C" },
+  "Syrups":           { bg:"#FDF2F8", text:"#9D174D", border:"#F9A8D4", dot:"#DB2777" },
+  "Garnishes":        { bg:"#F0FDF4", text:"#14532D", border:"#86EFAC", dot:"#16A34A" },
+  "Dry Goods":        { bg:"#F8FAFC", text:"#334155", border:"#CBD5E1", dot:"#475569" },
+  "Other":            { bg:"#EFF6FF", text:"#1E40AF", border:"#93C5FD", dot:"#2563EB" },
+};
+const catColor = (cat) => CAT_COLOR[cat] || CAT_COLOR["Other"];
+
+// ─── CATEGORY TAG (module level — used throughout all screens) ────────────────
+function CatTag({ category }) {
+  const cc = catColor(category);
+  return (
+    <span style={{
+      display:"inline-flex", alignItems:"center", gap:5,
+      background:cc.bg, color:cc.text, border:`1px solid ${cc.border}`,
+      fontFamily:"'IBM Plex Mono','Courier New',monospace",
+      fontSize:10, padding:"3px 9px", borderRadius:20,
+      whiteSpace:"nowrap", flexShrink:0, letterSpacing:".04em",
+    }}>
+      <span style={{width:5,height:5,borderRadius:"50%",background:cc.dot,display:"inline-block",flexShrink:0}}/>
+      {category}
+    </span>
+  );
+}
+
 // ─── SEED DATA — Real bar data ────────────────────────────────────────────────
 const SEED_INGREDIENTS = [
   // Spirits
@@ -216,14 +248,16 @@ function CategoryFilter({ selected, onChange, counts }) {
       {all.map(cat => {
         const count = cat === "All" ? (counts ? Object.values(counts).reduce((a,b)=>a+b,0) : null) : (counts?.[cat] || 0);
         const active = selected === cat;
+        const cc = cat === "All" ? null : catColor(cat);
         return (
           <button key={cat} onClick={() => onChange(cat)} style={{
-            background: active ? "var(--gold)" : "var(--surface2)",
-            color: active ? "#0e0e0f" : "var(--text-dim)",
-            border: active ? "none" : "1px solid var(--border)",
+            background: active ? (cc ? cc.dot : "var(--accent)") : (cc ? cc.bg : "#F0EDE8"),
+            color: active ? "#fff" : (cc ? cc.text : "var(--text-mid)"),
+            border: `1.5px solid ${active ? (cc ? cc.dot : "var(--accent)") : (cc ? cc.border : "var(--border)")}`,
             fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".06em",
-            padding: "8px 14px", borderRadius: 20, cursor: "pointer",
+            padding: "7px 13px", borderRadius: 20, cursor: "pointer",
             whiteSpace: "nowrap", flexShrink: 0, transition: "all .15s",
+            fontWeight: active ? 500 : 400,
           }}>
             {cat}{count !== null && count !== undefined ? ` ${count}` : ""}
           </button>
@@ -273,15 +307,15 @@ function NumInput({ value, onChange, placeholder, suffix, sublabel }) {
         style={{
           background:"var(--input-bg)", border:"1.5px solid var(--border)",
           color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15,
-          padding:"14px 16px", paddingRight: suffix ? 80 : 16,
+          padding:"13px 16px", paddingRight: suffix ? 80 : 16,
           borderRadius:10, width:"100%", outline:"none", transition:"border-color .15s",
-          WebkitAppearance:"none",
+          WebkitAppearance:"none", boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
         }}
-        onFocus={e => e.target.style.borderColor="var(--gold)"}
+        onFocus={e => e.target.style.borderColor="var(--accent)"}
         onBlur={e  => e.target.style.borderColor="var(--border)"}
       />
       {suffix && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-dim)", pointerEvents:"none", fontFamily:"var(--font-mono)" }}>{suffix}</span>}
-      {sublabel && <div style={{ fontSize:11, color:"var(--gold-dim)", marginTop:4, paddingLeft:2 }}>{sublabel}</div>}
+      {sublabel && <div style={{ fontSize:11, color:"var(--text-dim)", marginTop:4, paddingLeft:2 }}>{sublabel}</div>}
     </div>
   );
 }
@@ -292,8 +326,8 @@ function TextInput({ value, onChange, placeholder }) {
     <input type="text" placeholder={placeholder} value={value}
       onChange={e => onChange(e.target.value)}
       autoComplete="off" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-      style={{ background:"var(--input-bg)", border:"1.5px solid var(--border)", color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15, padding:"14px 16px", borderRadius:10, width:"100%", outline:"none", WebkitAppearance:"none" }}
-      onFocus={e => e.target.style.borderColor="var(--gold)"}
+      style={{ background:"var(--input-bg)", border:"1.5px solid var(--border)", color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15, padding:"13px 16px", borderRadius:10, width:"100%", outline:"none", WebkitAppearance:"none", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}
+      onFocus={e => e.target.style.borderColor="var(--accent)"}
       onBlur={e  => e.target.style.borderColor="var(--border)"}
     />
   );
@@ -302,8 +336,8 @@ function TextInput({ value, onChange, placeholder }) {
 // ─── SELECT (module level) ─────────────────────────────────────────────────────
 function Select({ value, onChange, children }) {
   return (
-    <select value={value} onChange={e => onChange(e.target.value)} style={{ background:"var(--input-bg)", border:"1.5px solid var(--border)", color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15, padding:"14px 16px", borderRadius:10, width:"100%", outline:"none", appearance:"none", WebkitAppearance:"none", cursor:"pointer" }}
-      onFocus={e => e.target.style.borderColor="var(--gold)"}
+    <select value={value} onChange={e => onChange(e.target.value)} style={{ background:"var(--input-bg)", border:"1.5px solid var(--border)", color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15, padding:"13px 16px", borderRadius:10, width:"100%", outline:"none", appearance:"none", WebkitAppearance:"none", cursor:"pointer", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}
+      onFocus={e => e.target.style.borderColor="var(--accent)"}
       onBlur={e  => e.target.style.borderColor="var(--border)"}
     >{children}</select>
   );
@@ -523,75 +557,110 @@ export default function BarBuddy() {
     .sort((a,b)=>toPurch(b,usage[b.id]||0)-toPurch(a,usage[a.id]||0)).slice(0,4);
 
   if (!loaded) return (
-    <div style={{minHeight:"100vh",background:"#0e0e0f",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
-      <div style={{fontFamily:"'Cormorant Garant',serif",fontSize:32,fontWeight:700,color:"#c9a96e"}}>Bar Buddy</div>
-      <style>{`@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}`}</style>
-      <div style={{width:32,height:2,background:"#c9a96e",borderRadius:2,animation:"pulse 1s ease-in-out infinite"}}/>
+    <div style={{minHeight:"100vh",background:"#F5F3EF",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
+      <div style={{fontFamily:"'Cormorant Garant',serif",fontSize:32,fontWeight:700,color:"#2C5282",letterSpacing:".02em"}}>Bar Buddy</div>
+      <style>{`@keyframes pulse{0%,100%{opacity:.2}50%{opacity:1}}`}</style>
+      <div style={{display:"flex",gap:6}}>
+        {[0,1,2].map(i=><div key={i} style={{width:6,height:6,background:"#2C5282",borderRadius:"50%",animation:`pulse 1s ease-in-out ${i*0.2}s infinite`}}/>)}
+      </div>
     </div>
   );
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:wght@400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
     :root {
-      --gold:#c9a96e; --gold-dim:#7a6340; --gold-bg:#c9a96e12;
-      --green:#4ade80; --green-bg:#4ade8012;
-      --red:#f87171; --red-bg:#f8717112;
-      --blue:#7dd3fc; --blue-bg:#7dd3fc12;
-      --bg:#0e0e0f; --surface:#161618; --surface2:#1e1e21;
-      --border:#2a2a2e; --border-light:#333338;
-      --text:#f0ece4; --text-mid:#9a9590; --text-dim:#55524e;
-      --input-bg:#111113;
+      --accent:#2C5282; --accent-light:#EBF4FF; --accent-mid:#3B82F6;
+      --gold:#B7620A; --gold-bg:#FEF3E2; --gold-dim:#F59E0B;
+      --green:#15803D; --green-bg:#DCFCE7;
+      --red:#DC2626;   --red-bg:#FEE2E2;
+      --blue:#1D4ED8;  --blue-bg:#DBEAFE;
+      --bg:#F5F3EF; --surface:#FFFFFF; --surface2:#F8F6F2;
+      --border:#E5E0D8; --border-light:#D1CBC0;
+      --text:#1C1917; --text-mid:#6B6460; --text-dim:#A8A29E;
+      --input-bg:#FFFFFF;
+      --shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
       --font-serif:'Cormorant Garant',Georgia,serif;
       --font-mono:'IBM Plex Mono','Courier New',monospace;
-      --radius:14px; --radius-sm:10px; --nav-h:72px;
+      --radius:16px; --radius-sm:10px; --nav-h:72px;
     }
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{background:var(--bg)}
     ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
-    .page{padding:16px 16px;padding-bottom:calc(var(--nav-h) + 20px);max-width:600px;margin:0 auto}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+
+    .page{padding:16px;padding-bottom:calc(var(--nav-h) + 24px);max-width:600px;margin:0 auto}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm)}
     .card+.card{margin-top:10px}
+
     .sect{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;display:block}
+
     .row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border)}
     .row:last-child{border-bottom:none}.row:first-child{padding-top:0}
-    .tag  {display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg); color:var(--gold); font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px}
-    .tag-g{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px}
-    .tag-r{display:inline-flex;align-items:center;gap:4px;background:var(--red-bg);  color:var(--red);  font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px}
-    .tag-b{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg); color:var(--blue); font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px}
-    .tag-d{display:inline-flex;align-items:center;gap:4px;background:#ffffff08;color:var(--text-dim);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px}
-    .tag-cat{display:inline-block;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);font-family:var(--font-mono);font-size:9px;padding:2px 8px;border-radius:10px;letter-spacing:.06em}
-    .btn-primary{background:var(--gold);color:#0e0e0f;font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:15px 24px;border-radius:var(--radius-sm);border:none;cursor:pointer;width:100%}
-    .btn-primary:hover{background:#d9ba7f}
-    .btn-secondary{background:transparent;color:var(--gold);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:14px 24px;border-radius:var(--radius-sm);border:1.5px solid var(--gold);cursor:pointer}
-    .btn-secondary:hover{background:var(--gold-bg)}
-    .btn-blue{background:transparent;color:var(--blue);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:14px 24px;border-radius:var(--radius-sm);border:1.5px solid var(--blue);cursor:pointer}
-    .btn-blue:hover{background:var(--blue-bg)}
+
+    /* Status tags */
+    .tag  {display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #F59E0B40}
+    .tag-g{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #16A34A40}
+    .tag-r{display:inline-flex;align-items:center;gap:4px;background:var(--red-bg);color:var(--red);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #DC262640}
+    .tag-b{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg);color:var(--blue);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #1D4ED840}
+    .tag-d{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);color:var(--text-dim);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border)}
+
+    /* Buttons */
+    .btn-primary{background:var(--text);color:#fff;font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:15px 24px;border-radius:var(--radius-sm);border:none;cursor:pointer;width:100%;transition:background .15s;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+    .btn-primary:hover{background:#374151}
+    .btn-secondary{background:transparent;color:var(--text);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:14px 24px;border-radius:var(--radius-sm);border:1.5px solid var(--border-light);cursor:pointer;transition:all .15s}
+    .btn-secondary:hover{background:var(--surface2);border-color:var(--text-dim)}
+    .btn-blue{background:var(--accent-light);color:var(--accent);font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:14px 24px;border-radius:var(--radius-sm);border:1.5px solid #BFD7F5;cursor:pointer;transition:all .15s;font-weight:500}
+    .btn-blue:hover{background:#DBEAFE}
     .btn-ghost{background:transparent;border:none;color:var(--red);font-family:var(--font-mono);font-size:11px;cursor:pointer;padding:8px 4px;opacity:.7}
     .btn-ghost:hover{opacity:1}
-    .btn-icon{background:var(--surface2);border:1px solid var(--border);color:var(--text-mid);border-radius:8px;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-    .btn-icon:hover{border-color:var(--border-light);color:var(--text)}
+    .btn-icon{background:var(--surface2);border:1px solid var(--border);color:var(--text-mid);border-radius:8px;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .btn-icon:hover{background:var(--surface);border-color:var(--border-light);color:var(--text);box-shadow:var(--shadow-sm)}
+
+    /* Layout */
     .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     .pill{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
     .hr{border:none;border-top:1px solid var(--border);margin:14px 0}
-    .nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
-    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;color:var(--text-dim);transition:color .15s;padding:8px 0}
-    .nav-item.active{color:var(--gold)}
+
+    /* Bottom nav */
+    .nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:stretch;z-index:50;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 12px rgba(0,0,0,0.06)}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--text-dim);transition:color .15s;padding:8px 0;position:relative}
+    .nav-item.active{color:var(--accent)}
+    .nav-item.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
     .nav-item span{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+
+    /* Header */
     .header{padding:16px 16px 0;max-width:600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-    .overlay{position:fixed;inset:0;background:#000000cc;z-index:100;display:flex;align-items:flex-end;justify-content:center}
-    .sheet{background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:600px}
-    .sheet-handle{width:36px;height:4px;background:var(--border-light);border-radius:2px;margin:0 auto 18px}
-    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border-light);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:12px 20px;border-radius:var(--radius-sm);z-index:200;white-space:nowrap;box-shadow:0 8px 32px #00000060}
-    .cbar{background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.6}
-    .cbar b{color:var(--gold);font-weight:400}
-    .alert-banner{background:linear-gradient(135deg,#c9a96e18,#c9a96e08);border:1px solid var(--gold-dim);border-radius:var(--radius);padding:18px}
+
+    /* Modals */
+    .overlay{position:fixed;inset:0;background:#00000066;z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+    .sheet{background:var(--surface);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:600px;box-shadow:0 -4px 32px rgba(0,0,0,0.12)}
+    .sheet-handle{width:36px;height:4px;background:var(--border-light);border-radius:2px;margin:0 auto 20px}
+
+    /* Toast */
+    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-family:var(--font-mono);font-size:12px;padding:12px 20px;border-radius:var(--radius-sm);z-index:200;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+
+    /* Misc */
+    .cbar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-mid);margin-top:8px;line-height:1.6}
+    .cbar b{color:var(--accent);font-weight:500}
+    .alert-banner{background:linear-gradient(135deg,#FEF9E8,#FFF8F0);border:1px solid #F59E0B60;border-radius:var(--radius);padding:18px}
     .field{margin-bottom:14px}
     .field-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;display:block}
-    .subtabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:18px}
-    .subtab{background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:10px 16px;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
-    .subtab.on{color:var(--gold);border-bottom-color:var(--gold)}
+    .subtabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:18px}
+    .subtab{background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+    .subtab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
     .wk{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px}
     .no-results{text-align:center;padding:32px 16px;color:var(--text-dim);font-size:13px}
+
+    /* Category colour left border on ingredient rows */
+    .ing-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0 12px 12px;border-bottom:1px solid var(--border);border-left:3px solid transparent;margin-left:-4px;transition:background .1s}
+    .ing-row:last-child{border-bottom:none}
+    .ing-row:hover{background:var(--surface2);border-radius:0 8px 8px 0}
+
+    /* Save indicator */
+    @keyframes savePop{0%{transform:scale(0.8);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+    .save-icon{animation:savePop .3s ease}
   `;
 
   const navItems = [
@@ -607,16 +676,23 @@ export default function BarBuddy() {
       <style>{css}</style>
 
       {/* HEADER */}
-      <div className="header">
-        <div>
-          <div style={{fontFamily:"var(--font-serif)",fontSize:26,fontWeight:700,color:"var(--gold)",lineHeight:1}}>Bar Buddy</div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",letterSpacing:".15em",textTransform:"uppercase",marginTop:3}}>
-            {monthStart ? `Month from ${monthStart} · Wk ${weekNum}` : "Set up your opening stock to begin"}
+      <div style={{background:"var(--surface)",borderBottom:"1px solid var(--border)",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+        <div className="header" style={{paddingTop:16,paddingBottom:14}}>
+          <div>
+            <div style={{fontFamily:"var(--font-serif)",fontSize:26,fontWeight:700,color:"var(--accent)",lineHeight:1,letterSpacing:"-.01em"}}>Bar Buddy</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",letterSpacing:".12em",textTransform:"uppercase",marginTop:3}}>
+              {monthStart ? `Month from ${monthStart} · Wk ${weekNum}` : "Set up your opening stock to begin"}
+            </div>
           </div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
-          {weekTotal>0&&<button className="tag" style={{cursor:"pointer",border:"none"}} onClick={()=>setModal("logWeek")}>Log Wk {weekNum}</button>}
-          <button className="btn-blue" style={{padding:"10px 14px",fontSize:11}} onClick={()=>setModal("newMonth")}>New Month</button>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
+            {/* Save indicator */}
+            <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,color:"var(--green)",fontFamily:"var(--font-mono)",letterSpacing:".06em"}}>
+              <svg className="save-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Saved
+            </span>
+            {weekTotal>0&&<button className="tag" style={{cursor:"pointer",border:"none",background:"#FEF9E8"}} onClick={()=>setModal("logWeek")}>Log Wk {weekNum}</button>}
+            <button className="btn-blue" style={{padding:"9px 14px",fontSize:11}} onClick={()=>setModal("newMonth")}>New Month</button>
+          </div>
         </div>
       </div>
 
@@ -636,7 +712,7 @@ export default function BarBuddy() {
                 <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
                   <div>
                     <span style={{fontSize:14}}>{item.name}</span>
-                    <span className="tag-cat" style={{marginLeft:8}}>{item.category}</span>
+                    <CatTag category={item.category}/>
                   </div>
                   <span style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:600,color:"var(--gold)"}}>{item.toOrder} <span style={{fontSize:11,fontFamily:"var(--font-mono)",fontWeight:400}}>{item.purchaseUnit}{item.toOrder!==1?"s":""}</span></span>
                 </div>
@@ -656,9 +732,9 @@ export default function BarBuddy() {
             </div>
           )}
           <div className="g3" style={{marginBottom:10}}>
-            {[{l:"Ingredients",v:ingredients.length},{l:"Sales",v:totalMonthly},{l:"Week",v:weekNum}].map(s=>(
+            {[{l:"Ingredients",v:ingredients.length,c:"var(--accent)"},{l:"Sales",v:totalMonthly,c:"var(--green)"},{l:"Week",v:weekNum,c:"var(--gold)"}].map(s=>(
               <div key={s.l} className="card" style={{textAlign:"center",padding:"14px 8px"}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:28,fontWeight:700,color:"var(--gold)",lineHeight:1}}>{s.v}</div>
+                <div style={{fontFamily:"var(--font-serif)",fontSize:28,fontWeight:700,color:s.c,lineHeight:1}}>{s.v}</div>
                 <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".12em",textTransform:"uppercase",marginTop:4}}>{s.l}</div>
               </div>
             ))}
@@ -666,15 +742,21 @@ export default function BarBuddy() {
           {topUsed.length>0&&(
             <div className="card" style={{marginBottom:10}}>
               <span className="sect">Top Usage This Month</span>
-              {topUsed.map(ing=>(
-                <div key={ing.id} className="row">
-                  <div>
-                    <span style={{fontSize:14}}>{ing.name}</span>
-                    <span className="tag-cat" style={{marginLeft:8}}>{ing.category}</span>
+              {topUsed.map(ing=>{
+                const cc = catColor(ing.category);
+                return (
+                  <div key={ing.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:3,height:32,background:cc.dot,borderRadius:2,flexShrink:0}}/>
+                      <div>
+                        <div style={{fontSize:13,color:"var(--text)"}}>{ing.name}</div>
+                        <div style={{fontSize:10,color:cc.text,fontFamily:"var(--font-mono)",marginTop:1}}>{ing.category}</div>
+                      </div>
+                    </div>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:cc.dot,fontWeight:500}}>{fmtP(ing.purchaseUnit,toPurch(ing,usage[ing.id]||0))}</span>
                   </div>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--gold)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,usage[ing.id]||0))}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <div className="card">
@@ -720,7 +802,7 @@ export default function BarBuddy() {
                         <div key={ing.id}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
                             <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <span className="tag-cat">{ing.category}</span>
+                            <CatTag category={ing.category}/>
                           </div>
                           <NumInput
                             value={openingStock[String(ing.id)]??""}
@@ -758,7 +840,7 @@ export default function BarBuddy() {
                         <div key={ing.id}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
                             <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <span className="tag-cat">{ing.category}</span>
+                            <CatTag category={ing.category}/>
                           </div>
                           <NumInput
                             value={deliveries[String(ing.id)]??""}
@@ -795,7 +877,7 @@ export default function BarBuddy() {
                         <div key={ing.id}>
                           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
                             <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <span className="tag-cat">{ing.category}</span>
+                            <CatTag category={ing.category}/>
                           </div>
                           <NumInput
                             value={closingStock[String(ing.id)]??""}
@@ -865,7 +947,7 @@ export default function BarBuddy() {
                     <div style={{flex:1,paddingRight:12}}>
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                         <span style={{fontFamily:"var(--font-serif)",fontSize:16,fontWeight:600}}>{ing.name}</span>
-                        <span className="tag-cat">{ing.category}</span>
+                        <CatTag category={ing.category}/>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
                         <div style={{display:"flex",justifyContent:"space-between"}}><span>Opening</span><span style={{color:"var(--text-mid)"}}>{fmtP(countUnit(ing),baseToCount(ing,ob))}</span></div>
@@ -977,7 +1059,7 @@ export default function BarBuddy() {
                     </div>
                   ))}
                   <div style={{fontSize:11,color:"var(--text-dim)",paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                    Monthly total: <span style={{color:"var(--gold)"}}>{totalMonthly} drinks</span> across {weeklyLog.length} week{weeklyLog.length!==1?"s":""}
+                    Monthly total: <span style={{color:"var(--accent)"}}>{totalMonthly} drinks</span> across {weeklyLog.length} week{weeklyLog.length!==1?"s":""}
                   </div>
                 </div>
               )}
@@ -1016,7 +1098,7 @@ export default function BarBuddy() {
                             <div style={{flex:1}}>
                               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
                                 <span style={{fontFamily:"var(--font-serif)",fontSize:15,fontWeight:600}}>{item.name}</span>
-                                <span className="tag-cat">{item.category}</span>
+                                <CatTag category={item.category}/>
                               </div>
                               {/* Bottle quantities — prominent */}
                               <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,fontFamily:"var(--font-mono)"}}>
@@ -1191,11 +1273,11 @@ export default function BarBuddy() {
                           </div>
                         ) : (
                           /* ── VIEW MODE ── */
-                          <div className="row" style={{alignItems:"flex-start",gap:12}}>
+                          <div className="ing-row" style={{borderLeftColor:catColor(ing.category).dot}}>
                             <div style={{flex:1}}>
                               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                                <span style={{fontSize:14}}>{ing.name}</span>
-                                <span className="tag-cat">{ing.category}</span>
+                                <span style={{fontSize:14,fontWeight:500}}>{ing.name}</span>
+                                <span style={{display:"inline-block",background:catColor(ing.category).bg,color:catColor(ing.category).text,border:`1px solid ${catColor(ing.category).border}`,fontFamily:"var(--font-mono)",fontSize:9,padding:"2px 8px",borderRadius:10,letterSpacing:".06em"}}>{ing.category}</span>
                               </div>
                               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                                 <span className="pill">{ing.recipeUnit}</span>
@@ -1289,7 +1371,7 @@ export default function BarBuddy() {
                         <div key={idx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
                           <span style={{fontSize:12,color:"var(--text-mid)"}}>{ing?.name}</span>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontSize:12,color:"var(--gold)",fontFamily:"var(--font-mono)"}}>{ri.quantity}{ing?.recipeUnit}</span>
+                            <span style={{fontSize:12,color:"var(--accent)",fontFamily:"var(--font-mono)"}}>{ri.quantity}{ing?.recipeUnit}</span>
                             <button style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:16,lineHeight:1}} onClick={()=>setNewRec(p=>({...p,ings:p.ings.filter((_,i)=>i!==idx)}))}>×</button>
                           </div>
                         </div>
@@ -1360,10 +1442,10 @@ export default function BarBuddy() {
             <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:10,padding:14,marginBottom:16}}>
               {Object.entries(weekSales).filter(([,v])=>num(v)>0).map(([rid,qty])=>{
                 const r=recipes.find(x=>x.id===parseInt(rid));
-                return r?<div key={rid} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:13}}><span style={{color:"var(--text-mid)"}}>{r.name}</span><span style={{color:"var(--gold)",fontFamily:"var(--font-mono)"}}>{qty}</span></div>:null;
+                return r?<div key={rid} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:13}}><span style={{color:"var(--text-mid)"}}>{r.name}</span><span style={{color:"var(--accent)",fontFamily:"var(--font-mono)"}}>{qty}</span></div>:null;
               })}
               <div style={{display:"flex",justifyContent:"space-between",paddingTop:10,marginTop:6,borderTop:"1px solid var(--border)",fontSize:12,color:"var(--text-dim)"}}>
-                <span>Total</span><span style={{color:"var(--gold)",fontFamily:"var(--font-mono)"}}>{weekTotal} drinks</span>
+                <span>Total</span><span style={{color:"var(--accent)",fontFamily:"var(--font-mono)"}}>{weekTotal} drinks</span>
               </div>
             </div>
             <button className="btn-primary" style={{marginBottom:10}} onClick={logWeek}>Confirm & Log</button>
