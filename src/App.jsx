@@ -356,6 +356,11 @@ export default function BarBuddy() {
   const saveTimer = useRef(null);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
 
+  // Scroll to top whenever main tab changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [tab]);
+
   // ── LOAD ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
