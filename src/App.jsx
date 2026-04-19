@@ -336,6 +336,11 @@ export default function BarBuddy() {
   const [newRI,     setNewRI]     = useState({ ingredientId:"", quantity:"" });
   const [csvError,  setCsvError]  = useState("");
 
+  // Edit state
+  const [editIngId,  setEditIngId]  = useState(null); // id of ingredient being edited
+  const [editIng,    setEditIng]    = useState({});    // edit form values
+  const [editRecId,  setEditRecId]  = useState(null); // id of recipe being edited
+
   // Filter / search state — one set per screen
   const [stockCat,    setStockCat]    = useState("All");
   const [stockSearch, setStockSearch] = useState("");
@@ -1040,22 +1045,82 @@ export default function BarBuddy() {
                   return filtered.length===0
                     ? <div className="no-results">No ingredients match</div>
                     : filtered.map(ing=>(
-                      <div key={ing.id} className="row" style={{alignItems:"flex-start",gap:12}}>
-                        <div style={{flex:1}}>
-                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                            <span style={{fontSize:14}}>{ing.name}</span>
-                            <span className="tag-cat">{ing.category}</span>
+                      <div key={ing.id}>
+                        {editIngId===ing.id ? (
+                          /* ── EDIT MODE ── */
+                          <div style={{padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
+                            <div className="field">
+                              <label className="field-label">Name</label>
+                              <TextInput value={editIng.name} onChange={v=>setEditIng(p=>({...p,name:v}))} placeholder="Name" />
+                            </div>
+                            <div className="field">
+                              <label className="field-label">Category</label>
+                              <Select value={editIng.category} onChange={v=>setEditIng(p=>({...p,category:v}))}>
+                                {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+                              </Select>
+                            </div>
+                            <div className="g2" style={{marginBottom:12}}>
+                              <div>
+                                <label className="field-label">Recipe Unit</label>
+                                <Select value={editIng.recipeUnit} onChange={v=>setEditIng(p=>({...p,recipeUnit:v}))}>
+                                  {RECIPE_UNITS.map(u=><option key={u}>{u}</option>)}
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="field-label">Purchase Unit</label>
+                                <Select value={editIng.purchaseUnit} onChange={v=>setEditIng(p=>({...p,purchaseUnit:v}))}>
+                                  {PURCHASE_UNITS.map(u=><option key={u}>{u}</option>)}
+                                </Select>
+                              </div>
+                            </div>
+                            <div className="g2" style={{marginBottom:12}}>
+                              <div>
+                                <label className="field-label">{editIng.recipeUnit} per {editIng.purchaseUnit}</label>
+                                <NumInput value={editIng.purchaseSize} placeholder="e.g. 700" onChange={v=>setEditIng(p=>({...p,purchaseSize:v}))} />
+                              </div>
+                              <div>
+                                <label className="field-label">Par ({editIng.purchaseUnit}s)</label>
+                                <NumInput value={editIng.par} placeholder="e.g. 6" onChange={v=>setEditIng(p=>({...p,par:v}))} />
+                              </div>
+                            </div>
+                            <div style={{display:"flex",gap:8}}>
+                              <button className="btn-primary" style={{flex:1}} onClick={()=>{
+                                if(!editIng.name||!editIng.purchaseSize||!editIng.par) return showToast("Fill all fields");
+                                const upd=ingredients.map(i=>i.id===ing.id?{...i,...editIng,purchaseSize:num(editIng.purchaseSize),par:num(editIng.par)}:i);
+                                setIngredients(upd); saveLib(upd,recipes);
+                                setEditIngId(null); showToast("Ingredient updated");
+                              }}>Save Changes</button>
+                              <button className="btn-secondary" onClick={()=>setEditIngId(null)}>Cancel</button>
+                              <button className="btn-icon" onClick={()=>{
+                                const upd=ingredients.filter(i=>i.id!==ing.id);
+                                setIngredients(upd); saveLib(upd,recipes);
+                                setEditIngId(null); showToast("Removed");
+                              }}><Icon.trash/></button>
+                            </div>
                           </div>
-                          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                            <span className="pill">{ing.recipeUnit}</span>
-                            <span className="pill">{ing.purchaseUnit}</span>
-                            <span className="pill">1 {ing.purchaseUnit} = {ing.purchaseSize}{ing.recipeUnit}</span>
-                            <span className="tag">par: {ing.par}</span>
+                        ) : (
+                          /* ── VIEW MODE ── */
+                          <div className="row" style={{alignItems:"flex-start",gap:12}}>
+                            <div style={{flex:1}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                                <span style={{fontSize:14}}>{ing.name}</span>
+                                <span className="tag-cat">{ing.category}</span>
+                              </div>
+                              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                                <span className="pill">{ing.recipeUnit}</span>
+                                <span className="pill">{ing.purchaseUnit}</span>
+                                <span className="pill">1 {ing.purchaseUnit} = {ing.purchaseSize}{ing.recipeUnit}</span>
+                                <span className="tag">par: {ing.par}</span>
+                              </div>
+                            </div>
+                            <button className="btn-icon" style={{flexShrink:0}} onClick={()=>{
+                              setEditIngId(ing.id);
+                              setEditIng({name:ing.name,category:ing.category,recipeUnit:ing.recipeUnit,purchaseUnit:ing.purchaseUnit,purchaseSize:String(ing.purchaseSize),par:String(ing.par)});
+                            }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
                           </div>
-                        </div>
-                        <button className="btn-icon" style={{flexShrink:0}} onClick={()=>{const u=ingredients.filter(i=>i.id!==ing.id);setIngredients(u);saveLib(u,recipes);showToast("Removed");}}>
-                          <Icon.trash/>
-                        </button>
+                        )}
                       </div>
                     ));
                 })()}
@@ -1066,7 +1131,9 @@ export default function BarBuddy() {
           {subTab==="recipes" && (
             <div>
               <div className="card" style={{marginBottom:10}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:600,color:"var(--gold)",marginBottom:16}}>Build Recipe Spec</div>
+                <div style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:600,color:"var(--gold)",marginBottom:16}}>
+                  {editRecId ? "Edit Recipe" : "Build Recipe Spec"}
+                </div>
                 <div className="field">
                   <label className="field-label">Drink Name</label>
                   <TextInput placeholder="e.g. Aperol Spritz" value={newRec.name} onChange={v=>setNewRec(p=>({...p,name:v}))} />
@@ -1106,10 +1173,21 @@ export default function BarBuddy() {
                   }}>+ Add to Spec</button>
                   <button className="btn-primary" style={{flex:1}} onClick={()=>{
                     if(!newRec.name||newRec.ings.length===0) return showToast("Need name + 1 ingredient");
-                    const upd=[...recipes,{id:Date.now(),name:newRec.name,ingredients:newRec.ings}];
+                    let upd;
+                    if(editRecId) {
+                      // update existing recipe
+                      upd=recipes.map(r=>r.id===editRecId?{...r,name:newRec.name,ingredients:newRec.ings}:r);
+                      setEditRecId(null);
+                      showToast("Recipe updated");
+                    } else {
+                      // new recipe
+                      upd=[...recipes,{id:Date.now(),name:newRec.name,ingredients:newRec.ings}];
+                      showToast("Recipe saved");
+                    }
                     setRecipes(upd); saveLib(ingredients,upd);
-                    setNewRec({name:"",ings:[]}); showToast("Recipe saved");
-                  }}>Save Recipe</button>
+                    setNewRec({name:"",ings:[]});
+                  }}>{editRecId?"Update Recipe":"Save Recipe"}</button>
+                  {editRecId&&<button className="btn-secondary" onClick={()=>{setEditRecId(null);setNewRec({name:"",ings:[]});}}>Cancel</button>}
                 </div>
                 {newRec.ings.length>0&&(
                   <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:10,padding:14}}>
@@ -1137,9 +1215,22 @@ export default function BarBuddy() {
                   <div key={recipe.id} style={{paddingBottom:16,marginBottom:14,borderBottom:"1px solid var(--border)"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                       <div style={{fontFamily:"var(--font-serif)",fontSize:17,fontWeight:600}}>{recipe.name}</div>
-                      <button className="btn-icon" onClick={()=>{const u=recipes.filter(r=>r.id!==recipe.id);setRecipes(u);saveLib(ingredients,u);showToast("Removed");}}>
-                        <Icon.trash/>
-                      </button>
+                      <div style={{display:"flex",gap:8}}>
+                        <button className="btn-icon" onClick={()=>{
+                          // Load recipe into the build form for editing
+                          setEditRecId(recipe.id);
+                          setNewRec({name:recipe.name, ings:recipe.ingredients.map(ri=>({ingredientId:ri.ingredientId,quantity:ri.quantity}))});
+                          setNewRI({ingredientId:"",quantity:""});
+                          setRecSearch("");
+                          window.scrollTo({top:0,behavior:"smooth"});
+                          showToast("Recipe loaded for editing — make changes and hit Save");
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button className="btn-icon" onClick={()=>{const u=recipes.filter(r=>r.id!==recipe.id);setRecipes(u);saveLib(ingredients,u);showToast("Removed");}}>
+                          <Icon.trash/>
+                        </button>
+                      </div>
                     </div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {recipe.ingredients.map((ri,idx)=>{
