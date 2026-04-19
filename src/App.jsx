@@ -342,10 +342,9 @@ export default function BarBuddy() {
   const [editRecId,  setEditRecId]  = useState(null); // id of recipe being edited
 
   // Filter / search state — one set per screen
+  // Stock page: stockCat + stockSearch shared across Opening Stock & Deliveries sub-tabs
   const [stockCat,    setStockCat]    = useState("All");
   const [stockSearch, setStockSearch] = useState("");
-  const [delivCat,    setDelivCat]    = useState("All");
-  const [delivSearch, setDelivSearch] = useState("");
   const [orderCat,    setOrderCat]    = useState("All");
   const [orderSearch, setOrderSearch] = useState("");
   const [varCat,      setVarCat]      = useState("All");
@@ -716,10 +715,10 @@ export default function BarBuddy() {
                 <span className="tag">Running total</span>
               </div>
               <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Increase as stock arrives throughout the month.</div>
-              <SearchBar value={delivSearch} onChange={setDelivSearch} placeholder="Search ingredients..." />
-              <CategoryFilter selected={delivCat} onChange={setDelivCat} counts={catCounts(ingredients)} />
+              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
+              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
               {(() => {
-                const filtered = filterIngs(ingredients, delivCat, delivSearch);
+                const filtered = filterIngs(ingredients, stockCat, stockSearch);
                 return filtered.length===0
                   ? <div className="no-results">No ingredients match</div>
                   : <div style={{display:"flex",flexDirection:"column",gap:12}}>
