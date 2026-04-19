@@ -41,161 +41,161 @@ function CatTag({ category }) {
 // ─── SEED DATA — Real bar data ────────────────────────────────────────────────
 const SEED_INGREDIENTS = [
   // Spirits
-  { id: 1,  name: "Chivas Regal 12",               category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 2,  name: "Yellow Rose Rye",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 3,  name: "Maker's Mark",                   category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
-  { id: 4,  name: "Jameson",                        category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
-  { id: 5,  name: "Toki Blended Whisky",            category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 6,  name: "Olmeca Tequila",                 category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 7,  name: "Havana Club 3",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 8,  name: "Beefeater Gin",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4 },
-  { id: 9,  name: "Absolut Vanilla",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 10, name: "Absolut Vodka",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 11, name: "Vida Mezcal",                    category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
+  { id: 1,  name: "Chivas Regal 12",               category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 85 },
+  { id: 2,  name: "Yellow Rose Rye",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 95 },
+  { id: 3,  name: "Maker's Mark",                   category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4,  costPerPurchaseUnit: 72 },
+  { id: 4,  name: "Jameson",                        category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4,  costPerPurchaseUnit: 58 },
+  { id: 5,  name: "Toki Blended Whisky",            category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 65 },
+  { id: 6,  name: "Olmeca Tequila",                 category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 48 },
+  { id: 7,  name: "Havana Club 3",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 42 },
+  { id: 8,  name: "Beefeater Gin",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4,  costPerPurchaseUnit: 38 },
+  { id: 9,  name: "Absolut Vanilla",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 42 },
+  { id: 10, name: "Absolut Vodka",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 38 },
+  { id: 11, name: "Vida Mezcal",                    category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 72 },
   // Liqueurs (inc. vermouth)
-  { id: 12, name: "Amaro Montenegro",               category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 13, name: "Campari",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 14, name: "Baileys",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 15, name: "Pavan",                          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 16, name: "Marie Brizard Cacao Blanc",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 17, name: "Marie Brizard Elderflower",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 18, name: "DeKuyper Peach",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 19, name: "DeKuyper Butterscotch",          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 20, name: "DeKuyper Sour Apple Puckers",    category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 21, name: "Malibu",                         category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 22, name: "Triple Sec",                     category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3 },
-  { id: 23, name: "Martini Bianco",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
-  { id: 24, name: "Sweet Vermouth",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
+  { id: 12, name: "Amaro Montenegro",               category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 48 },
+  { id: 13, name: "Campari",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 38 },
+  { id: 14, name: "Baileys",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 32 },
+  { id: 15, name: "Pavan",                          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 45 },
+  { id: 16, name: "Marie Brizard Cacao Blanc",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 38 },
+  { id: 17, name: "Marie Brizard Elderflower",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 38 },
+  { id: 18, name: "DeKuyper Peach",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 28 },
+  { id: 19, name: "DeKuyper Butterscotch",          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 28 },
+  { id: 20, name: "DeKuyper Sour Apple Puckers",    category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 28 },
+  { id: 21, name: "Malibu",                         category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 32 },
+  { id: 22, name: "Triple Sec",                     category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 22 },
+  { id: 23, name: "Martini Bianco",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 18 },
+  { id: 24, name: "Sweet Vermouth",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 18 },
   // Syrups
-  { id: 25, name: "Monin Caramel Syrup",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 26, name: "Monin Strawberry Syrup",         category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2 },
-  { id: 27, name: "Maple Syrup",                    category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
-  { id: 28, name: "Orgeat (Crawley's)",             category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 2 },
-  { id: 29, name: "Sugar Syrup (house)",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "2kg bag", purchaseSize: 3000, par: 3 },
+  { id: 25, name: "Monin Caramel Syrup",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 18 },
+  { id: 26, name: "Monin Strawberry Syrup",         category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 18 },
+  { id: 27, name: "Maple Syrup",                    category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 12 },
+  { id: 28, name: "Orgeat (Crawley's)",             category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 2,  costPerPurchaseUnit: 22 },
+  { id: 29, name: "Sugar Syrup (house)",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "2kg bag", purchaseSize: 3000, par: 3,  costPerPurchaseUnit: 4 },
   // Juice & Cordials
-  { id: 30, name: "Lemon Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
-  { id: 31, name: "Lime Juice",                     category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
-  { id: 32, name: "Apple Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
-  { id: 33, name: "Passionfruit Pulp",              category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "can",     purchaseSize: 500,  par: 3 },
-  { id: 34, name: "Cranberry Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
-  { id: 35, name: "Pineapple Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3 },
-  { id: 36, name: "Aquafaba",                       category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4 },
+  { id: 30, name: "Lemon Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4,  costPerPurchaseUnit: 6 },
+  { id: 31, name: "Lime Juice",                     category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4,  costPerPurchaseUnit: 8 },
+  { id: 32, name: "Apple Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3,  costPerPurchaseUnit: 4 },
+  { id: 33, name: "Passionfruit Pulp",              category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "can",     purchaseSize: 500,  par: 3,  costPerPurchaseUnit: 5 },
+  { id: 34, name: "Cranberry Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3,  costPerPurchaseUnit: 5 },
+  { id: 35, name: "Pineapple Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3,  costPerPurchaseUnit: 4 },
+  { id: 36, name: "Aquafaba",                       category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4,  costPerPurchaseUnit: 3 },
   // Bitters
-  { id: 37, name: "Chocolate Bitters",              category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2 },
-  { id: 38, name: "Orange Bitters",                 category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2 },
+  { id: 37, name: "Chocolate Bitters",              category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2,  costPerPurchaseUnit: 22 },
+  { id: 38, name: "Orange Bitters",                 category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2,  costPerPurchaseUnit: 22 },
   // Beer & Cider (ordered by case/24, counted individually)
-  { id: 39, name: "Corona (355ml)",                 category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
-  { id: 40, name: "Great Northern Original (330ml)",category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
-  { id: 41, name: "Great Northern Supercrisp (330ml)",category:"Beer & Cider",    recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
-  { id: 42, name: "Heineken Zero (330ml)",          category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 1 },
-  { id: 43, name: "James Squire Orchard Crush (345ml)",category:"Beer & Cider",   recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2 },
+  { id: 39, name: "Corona (355ml)",                 category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 58 },
+  { id: 40, name: "Great Northern Original (330ml)",category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 42 },
+  { id: 41, name: "Great Northern Supercrisp (330ml)",category:"Beer & Cider",    recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 42 },
+  { id: 42, name: "Heineken Zero (330ml)",          category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 1,  costPerPurchaseUnit: 42 },
+  { id: 43, name: "James Squire Orchard Crush (345ml)",category:"Beer & Cider",   recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 52 },
   // Wine — Sparkling & Champagne
-  { id: 44, name: "Clover Hill NV",                 category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 45, name: "Bianca Vigna Prosecco",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 12 },
-  { id: 46, name: "Taittinger",                     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3 },
+  { id: 44, name: "Clover Hill NV",                 category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 38 },
+  { id: 45, name: "Bianca Vigna Prosecco",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 12, costPerPurchaseUnit: 28 },
+  { id: 46, name: "Taittinger",                     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3,  costPerPurchaseUnit: 95 },
   // Wine — Aromatic & Lighter White
-  { id: 47, name: "Fiore Moscato",                  category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 48, name: "Hay Shed Hill Sauvignon Semillon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 49, name: "Hesketh Sauvignon Blanc",        category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 50, name: "Josef Chromy Sgr Riesling",      category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
-  { id: 51, name: "Rockburn Pinot Gris",            category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
+  { id: 47, name: "Fiore Moscato",                  category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
+  { id: 48, name: "Hay Shed Hill Sauvignon Semillon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 24 },
+  { id: 49, name: "Hesketh Sauvignon Blanc",        category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 24 },
+  { id: 50, name: "Josef Chromy Sgr Riesling",      category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 32 },
+  { id: 51, name: "Rockburn Pinot Gris",            category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 28 },
   // Wine — Full Bodied White & Rosé
-  { id: 52, name: "Haha Chardonnay",                category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 53, name: "Dalrymple Chardonnay",           category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3 },
-  { id: 54, name: "Maison Saint AIX Rosé",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 55, name: "Santa Cristina Sangiovese Rosé", category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
+  { id: 52, name: "Haha Chardonnay",                category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
+  { id: 53, name: "Dalrymple Chardonnay",           category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3,  costPerPurchaseUnit: 48 },
+  { id: 54, name: "Maison Saint AIX Rosé",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 32 },
+  { id: 55, name: "Santa Cristina Sangiovese Rosé", category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
   // Wine — Lighter & Medium Red
-  { id: 56, name: "Fickle Mistress Pinot Noir",     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 57, name: "Torres Ibericos Tempranillo",    category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
-  { id: 58, name: "Domaine Beaurenard Grenache Syrah",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
+  { id: 56, name: "Fickle Mistress Pinot Noir",     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
+  { id: 57, name: "Torres Ibericos Tempranillo",    category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 28 },
+  { id: 58, name: "Domaine Beaurenard Grenache Syrah",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 38 },
   // Wine — Full Bodied Red
-  { id: 59, name: "Little Berry Cabernet Sauvignon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6 },
-  { id: 60, name: "Langmeil Valley Floor Shiraz",   category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4 },
-  { id: 61, name: "Leeuwin Estate Art Series Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3 },
-  { id: 62, name: "Penfolds Bin 389 Cabernet Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2 },
+  { id: 59, name: "Little Berry Cabernet Sauvignon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
+  { id: 60, name: "Langmeil Valley Floor Shiraz",   category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 32 },
+  { id: 61, name: "Leeuwin Estate Art Series Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3,  costPerPurchaseUnit: 48 },
+  { id: 62, name: "Penfolds Bin 389 Cabernet Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 120 },
   // Dry Goods
-  { id: 63, name: "Tajin",                          category: "Dry Goods",        recipeUnit: "g",    purchaseUnit: "bottle",  purchaseSize: 142,  par: 2 },
-  { id: 64, name: "Fever-Tree Lime & Yuzu Soda",    category: "Dry Goods",        recipeUnit: "ml",   purchaseUnit: "4-pack",  purchaseSize: 800,  par: 5 },
+  { id: 63, name: "Tajin",                          category: "Dry Goods",        recipeUnit: "g",    purchaseUnit: "bottle",  purchaseSize: 142,  par: 2,  costPerPurchaseUnit: 6 },
+  { id: 64, name: "Fever-Tree Lime & Yuzu Soda",    category: "Dry Goods",        recipeUnit: "ml",   purchaseUnit: "4-pack",  purchaseSize: 800,  par: 5,  costPerPurchaseUnit: 12 },
 ];
 
 const SEED_RECIPES = [
   // ── Cocktails ──
-  { id: 1,  name: "Smoke & Silk",
+  { id: 1,  name: "Smoke & Silk",       salePrice: 25,
     ingredients: [{ ingredientId: 1, quantity: 60 }, { ingredientId: 27, quantity: 15 }, { ingredientId: 37, quantity: 2.4 }] },
-  { id: 2,  name: "Fifth Avenue",
+  { id: 2,  name: "Fifth Avenue",       salePrice: 25,
     ingredients: [{ ingredientId: 2, quantity: 45 }, { ingredientId: 12, quantity: 15 }, { ingredientId: 38, quantity: 1.8 }] },
-  { id: 3,  name: "Crimson Bloom",
+  { id: 3,  name: "Crimson Bloom",      salePrice: 22,
     ingredients: [{ ingredientId: 3, quantity: 20 }, { ingredientId: 24, quantity: 20 }, { ingredientId: 13, quantity: 20 }] },
-  { id: 4,  name: "Velour Drift",
+  { id: 4,  name: "Velour Drift",       salePrice: 22,
     ingredients: [{ ingredientId: 4, quantity: 40 }, { ingredientId: 14, quantity: 20 }, { ingredientId: 25, quantity: 10 }] },
-  { id: 5,  name: "Kisetsu",
+  { id: 5,  name: "Kisetsu",            salePrice: 22,
     ingredients: [{ ingredientId: 3, quantity: 40 }, { ingredientId: 16, quantity: 20 }, { ingredientId: 30, quantity: 25 }, { ingredientId: 26, quantity: 10 }] },
-  { id: 6,  name: "Golden Pulse",
+  { id: 6,  name: "Golden Pulse",       salePrice: 22,
     ingredients: [{ ingredientId: 4, quantity: 30 }, { ingredientId: 17, quantity: 30 }, { ingredientId: 32, quantity: 60 }, { ingredientId: 33, quantity: 30 }, { ingredientId: 36, quantity: 30 }] },
-  { id: 7,  name: "Jasmine Mist",
+  { id: 7,  name: "Jasmine Mist",       salePrice: 23,
     ingredients: [{ ingredientId: 8, quantity: 45 }, { ingredientId: 17, quantity: 15 }, { ingredientId: 23, quantity: 5 }] },
-  { id: 8,  name: "Yuzu High",
+  { id: 8,  name: "Yuzu High",          salePrice: 22,
     ingredients: [{ ingredientId: 5, quantity: 60 }, { ingredientId: 64, quantity: 90 }] },
-  { id: 9,  name: "Neon Collins",
+  { id: 9,  name: "Neon Collins",       salePrice: 22,
     ingredients: [{ ingredientId: 10, quantity: 30 }] },
-  { id: 10, name: "First Light",
+  { id: 10, name: "First Light",        salePrice: 23,
     ingredients: [{ ingredientId: 6, quantity: 30 }, { ingredientId: 21, quantity: 30 }, { ingredientId: 31, quantity: 30 }, { ingredientId: 28, quantity: 10 }, { ingredientId: 22, quantity: 5 }] },
-  { id: 11, name: "Hikari Muse",
+  { id: 11, name: "Hikari Muse",        salePrice: 22,
     ingredients: [{ ingredientId: 9, quantity: 45 }, { ingredientId: 18, quantity: 15 }, { ingredientId: 26, quantity: 20 }, { ingredientId: 30, quantity: 25 }, { ingredientId: 36, quantity: 30 }] },
-  { id: 12, name: "Kin Bite",
+  { id: 12, name: "Kin Bite",           salePrice: 22,
     ingredients: [{ ingredientId: 8, quantity: 30 }, { ingredientId: 19, quantity: 15 }, { ingredientId: 20, quantity: 15 }, { ingredientId: 30, quantity: 30 }, { ingredientId: 29, quantity: 30 }, { ingredientId: 36, quantity: 30 }] },
-  { id: 13, name: "Blush Rose",
+  { id: 13, name: "Blush Rose",         salePrice: 20,
     ingredients: [{ ingredientId: 15, quantity: 30 }, { ingredientId: 30, quantity: 20 }, { ingredientId: 34, quantity: 40 }, { ingredientId: 45, quantity: 90 }] },
-  { id: 14, name: "Ember Flame",
+  { id: 14, name: "Ember Flame",        salePrice: 22,
     ingredients: [{ ingredientId: 7, quantity: 30 }, { ingredientId: 22, quantity: 30 }, { ingredientId: 31, quantity: 30 }, { ingredientId: 35, quantity: 30 }, { ingredientId: 28, quantity: 10 }, { ingredientId: 11, quantity: 15 }] },
-  { id: 15, name: "Japanese Highball",
+  { id: 15, name: "Japanese Highball",  salePrice: 20,
     ingredients: [{ ingredientId: 5, quantity: 60 }] },
   // ── Beer ──
-  { id: 16, name: "Corona",                         ingredients: [{ ingredientId: 39, quantity: 1 }] },
-  { id: 17, name: "Great Northern Original",        ingredients: [{ ingredientId: 40, quantity: 1 }] },
-  { id: 18, name: "Great Northern Supercrisp",      ingredients: [{ ingredientId: 41, quantity: 1 }] },
-  { id: 19, name: "Heineken Zero",                  ingredients: [{ ingredientId: 42, quantity: 1 }] },
-  { id: 20, name: "James Squire Orchard Crush",     ingredients: [{ ingredientId: 43, quantity: 1 }] },
+  { id: 16, name: "Corona",                         salePrice: 12, ingredients: [{ ingredientId: 39, quantity: 1 }] },
+  { id: 17, name: "Great Northern Original",        salePrice: 10, ingredients: [{ ingredientId: 40, quantity: 1 }] },
+  { id: 18, name: "Great Northern Supercrisp",      salePrice: 10, ingredients: [{ ingredientId: 41, quantity: 1 }] },
+  { id: 19, name: "Heineken Zero",                  salePrice: 9,  ingredients: [{ ingredientId: 42, quantity: 1 }] },
+  { id: 20, name: "James Squire Orchard Crush",     salePrice: 12, ingredients: [{ ingredientId: 43, quantity: 1 }] },
   // ── Sparkling & Champagne (120ml) ──
-  { id: 21, name: "Clover Hill NV 120ml",           ingredients: [{ ingredientId: 44, quantity: 120 }] },
-  { id: 22, name: "Bianca Vigna Prosecco 120ml",    ingredients: [{ ingredientId: 45, quantity: 120 }] },
-  { id: 23, name: "Taittinger 120ml",               ingredients: [{ ingredientId: 46, quantity: 120 }] },
+  { id: 21, name: "Clover Hill NV 120ml",           salePrice: 14, ingredients: [{ ingredientId: 44, quantity: 120 }] },
+  { id: 22, name: "Bianca Vigna Prosecco 120ml",    salePrice: 14, ingredients: [{ ingredientId: 45, quantity: 120 }] },
+  { id: 23, name: "Taittinger 120ml",               salePrice: 31, ingredients: [{ ingredientId: 46, quantity: 120 }] },
   // ── Aromatic & Lighter White (150ml / 250ml) ──
-  { id: 24, name: "Fiore Moscato 150ml",            ingredients: [{ ingredientId: 47, quantity: 150 }] },
-  { id: 25, name: "Fiore Moscato 250ml",            ingredients: [{ ingredientId: 47, quantity: 250 }] },
-  { id: 26, name: "Hay Shed Hill Sauv Sem 150ml",   ingredients: [{ ingredientId: 48, quantity: 150 }] },
-  { id: 27, name: "Hay Shed Hill Sauv Sem 250ml",   ingredients: [{ ingredientId: 48, quantity: 250 }] },
-  { id: 28, name: "Hesketh Sauvignon Blanc 150ml",  ingredients: [{ ingredientId: 49, quantity: 150 }] },
-  { id: 29, name: "Hesketh Sauvignon Blanc 250ml",  ingredients: [{ ingredientId: 49, quantity: 250 }] },
-  { id: 30, name: "Josef Chromy Riesling 150ml",    ingredients: [{ ingredientId: 50, quantity: 150 }] },
-  { id: 31, name: "Josef Chromy Riesling 250ml",    ingredients: [{ ingredientId: 50, quantity: 250 }] },
-  { id: 32, name: "Rockburn Pinot Gris 150ml",      ingredients: [{ ingredientId: 51, quantity: 150 }] },
-  { id: 33, name: "Rockburn Pinot Gris 250ml",      ingredients: [{ ingredientId: 51, quantity: 250 }] },
+  { id: 24, name: "Fiore Moscato 150ml",            salePrice: 12, ingredients: [{ ingredientId: 47, quantity: 150 }] },
+  { id: 25, name: "Fiore Moscato 250ml",            salePrice: 18, ingredients: [{ ingredientId: 47, quantity: 250 }] },
+  { id: 26, name: "Hay Shed Hill Sauv Sem 150ml",   salePrice: 12, ingredients: [{ ingredientId: 48, quantity: 150 }] },
+  { id: 27, name: "Hay Shed Hill Sauv Sem 250ml",   salePrice: 18, ingredients: [{ ingredientId: 48, quantity: 250 }] },
+  { id: 28, name: "Hesketh Sauvignon Blanc 150ml",  salePrice: 12, ingredients: [{ ingredientId: 49, quantity: 150 }] },
+  { id: 29, name: "Hesketh Sauvignon Blanc 250ml",  salePrice: 18, ingredients: [{ ingredientId: 49, quantity: 250 }] },
+  { id: 30, name: "Josef Chromy Riesling 150ml",    salePrice: 16, ingredients: [{ ingredientId: 50, quantity: 150 }] },
+  { id: 31, name: "Josef Chromy Riesling 250ml",    salePrice: 26, ingredients: [{ ingredientId: 50, quantity: 250 }] },
+  { id: 32, name: "Rockburn Pinot Gris 150ml",      salePrice: 15, ingredients: [{ ingredientId: 51, quantity: 150 }] },
+  { id: 33, name: "Rockburn Pinot Gris 250ml",      salePrice: 25, ingredients: [{ ingredientId: 51, quantity: 250 }] },
   // ── Full Bodied White & Rosé (150ml / 250ml) ──
-  { id: 34, name: "Haha Chardonnay 150ml",          ingredients: [{ ingredientId: 52, quantity: 150 }] },
-  { id: 35, name: "Haha Chardonnay 250ml",          ingredients: [{ ingredientId: 52, quantity: 250 }] },
-  { id: 36, name: "Dalrymple Chardonnay 150ml",     ingredients: [{ ingredientId: 53, quantity: 150 }] },
-  { id: 37, name: "Dalrymple Chardonnay 250ml",     ingredients: [{ ingredientId: 53, quantity: 250 }] },
-  { id: 38, name: "Maison Saint AIX Rosé 150ml",    ingredients: [{ ingredientId: 54, quantity: 150 }] },
-  { id: 39, name: "Maison Saint AIX Rosé 250ml",    ingredients: [{ ingredientId: 54, quantity: 250 }] },
-  { id: 40, name: "Santa Cristina Rosé 150ml",      ingredients: [{ ingredientId: 55, quantity: 150 }] },
-  { id: 41, name: "Santa Cristina Rosé 250ml",      ingredients: [{ ingredientId: 55, quantity: 250 }] },
+  { id: 34, name: "Haha Chardonnay 150ml",          salePrice: 13, ingredients: [{ ingredientId: 52, quantity: 150 }] },
+  { id: 35, name: "Haha Chardonnay 250ml",          salePrice: 21, ingredients: [{ ingredientId: 52, quantity: 250 }] },
+  { id: 36, name: "Dalrymple Chardonnay 150ml",     salePrice: 21, ingredients: [{ ingredientId: 53, quantity: 150 }] },
+  { id: 37, name: "Dalrymple Chardonnay 250ml",     salePrice: 36, ingredients: [{ ingredientId: 53, quantity: 250 }] },
+  { id: 38, name: "Maison Saint AIX Rosé 150ml",    salePrice: 18, ingredients: [{ ingredientId: 54, quantity: 150 }] },
+  { id: 39, name: "Maison Saint AIX Rosé 250ml",    salePrice: 29, ingredients: [{ ingredientId: 54, quantity: 250 }] },
+  { id: 40, name: "Santa Cristina Rosé 150ml",      salePrice: 13, ingredients: [{ ingredientId: 55, quantity: 150 }] },
+  { id: 41, name: "Santa Cristina Rosé 250ml",      salePrice: 21, ingredients: [{ ingredientId: 55, quantity: 250 }] },
   // ── Lighter & Medium Red (150ml / 250ml) ──
-  { id: 42, name: "Fickle Mistress Pinot Noir 150ml",  ingredients: [{ ingredientId: 56, quantity: 150 }] },
-  { id: 43, name: "Fickle Mistress Pinot Noir 250ml",  ingredients: [{ ingredientId: 56, quantity: 250 }] },
-  { id: 44, name: "Torres Tempranillo 150ml",           ingredients: [{ ingredientId: 57, quantity: 150 }] },
-  { id: 45, name: "Torres Tempranillo 250ml",           ingredients: [{ ingredientId: 57, quantity: 250 }] },
-  { id: 46, name: "Domaine Beaurenard Grenache 150ml",  ingredients: [{ ingredientId: 58, quantity: 150 }] },
-  { id: 47, name: "Domaine Beaurenard Grenache 250ml",  ingredients: [{ ingredientId: 58, quantity: 250 }] },
+  { id: 42, name: "Fickle Mistress Pinot Noir 150ml",  salePrice: 13, ingredients: [{ ingredientId: 56, quantity: 150 }] },
+  { id: 43, name: "Fickle Mistress Pinot Noir 250ml",  salePrice: 21, ingredients: [{ ingredientId: 56, quantity: 250 }] },
+  { id: 44, name: "Torres Tempranillo 150ml",           salePrice: 15, ingredients: [{ ingredientId: 57, quantity: 150 }] },
+  { id: 45, name: "Torres Tempranillo 250ml",           salePrice: 24, ingredients: [{ ingredientId: 57, quantity: 250 }] },
+  { id: 46, name: "Domaine Beaurenard Grenache 150ml",  salePrice: 19, ingredients: [{ ingredientId: 58, quantity: 150 }] },
+  { id: 47, name: "Domaine Beaurenard Grenache 250ml",  salePrice: 31, ingredients: [{ ingredientId: 58, quantity: 250 }] },
   // ── Full Bodied Red (150ml / 250ml) ──
-  { id: 48, name: "Little Berry Cabernet Sauv 150ml",   ingredients: [{ ingredientId: 59, quantity: 150 }] },
-  { id: 49, name: "Little Berry Cabernet Sauv 250ml",   ingredients: [{ ingredientId: 59, quantity: 250 }] },
-  { id: 50, name: "Langmeil Valley Floor Shiraz 150ml", ingredients: [{ ingredientId: 60, quantity: 150 }] },
-  { id: 51, name: "Langmeil Valley Floor Shiraz 250ml", ingredients: [{ ingredientId: 60, quantity: 250 }] },
-  { id: 52, name: "Leeuwin Art Series Shiraz 150ml",    ingredients: [{ ingredientId: 61, quantity: 150 }] },
-  { id: 53, name: "Leeuwin Art Series Shiraz 250ml",    ingredients: [{ ingredientId: 61, quantity: 250 }] },
-  { id: 54, name: "Penfolds Bin 389 150ml",             ingredients: [{ ingredientId: 62, quantity: 150 }] },
-  { id: 55, name: "Penfolds Bin 389 250ml",             ingredients: [{ ingredientId: 62, quantity: 250 }] },
+  { id: 48, name: "Little Berry Cabernet Sauv 150ml",   salePrice: 12, ingredients: [{ ingredientId: 59, quantity: 150 }] },
+  { id: 49, name: "Little Berry Cabernet Sauv 250ml",   salePrice: 18, ingredients: [{ ingredientId: 59, quantity: 250 }] },
+  { id: 50, name: "Langmeil Valley Floor Shiraz 150ml", salePrice: 19, ingredients: [{ ingredientId: 60, quantity: 150 }] },
+  { id: 51, name: "Langmeil Valley Floor Shiraz 250ml", salePrice: 28, ingredients: [{ ingredientId: 60, quantity: 250 }] },
+  { id: 52, name: "Leeuwin Art Series Shiraz 150ml",    salePrice: 22, ingredients: [{ ingredientId: 61, quantity: 150 }] },
+  { id: 53, name: "Leeuwin Art Series Shiraz 250ml",    salePrice: 36, ingredients: [{ ingredientId: 61, quantity: 250 }] },
+  { id: 54, name: "Penfolds Bin 389 150ml",             salePrice: 61, ingredients: [{ ingredientId: 62, quantity: 150 }] },
+  { id: 55, name: "Penfolds Bin 389 250ml",             salePrice: 101,ingredients: [{ ingredientId: 62, quantity: 250 }] },
 ];
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -214,6 +214,22 @@ const fmtP    = (unit, qty, dp=2) => `${num(qty).toFixed(dp)} ${unit}`;
 const toBase  = (ing, v) => num(v) * num(ing?.purchaseSize);
 const toPurch = (ing, v) => num(ing?.purchaseSize) > 0 ? num(v) / num(ing.purchaseSize) : 0;
 const dateStr = () => new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
+const fmtAUD  = (v) => `$${num(v).toFixed(2)}`; // AUD currency formatter
+
+// Cost per single recipe unit (ml, g, unit) for an ingredient
+const costPerUnit = (ing) => {
+  if (!ing?.costPerPurchaseUnit || !ing?.purchaseSize) return 0;
+  return num(ing.costPerPurchaseUnit) / num(ing.purchaseSize);
+};
+
+// Pour cost of a recipe — sum of (quantity × costPerUnit) for each ingredient
+const calcPourCost = (recipe, ingredientsMap) => {
+  if (!recipe?.ingredients) return 0;
+  return recipe.ingredients.reduce((total, {ingredientId, quantity}) => {
+    const ing = ingredientsMap[ingredientId];
+    return total + (quantity * costPerUnit(ing));
+  }, 0);
+};
 
 // Beer is ordered by case but COUNTED as individual units.
 // countUnit returns the unit used for stock entry inputs.
@@ -231,7 +247,7 @@ const countToPurch = (ing, v) => {
 };
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
-const STOR_LIB = "bb-lib-v3", STOR_PERIOD = "bb-period-v3";
+const STOR_LIB = "bb-lib-v4", STOR_PERIOD = "bb-period-v4";
 async function sGet(key) {
   try { const r = await window.storage.get(key); return r?.value ? JSON.parse(r.value) : null; } catch { return null; }
 }
@@ -380,8 +396,8 @@ export default function BarBuddy() {
 
   // Transient
   const [weekSales, setWeekSales] = useState({});
-  const [newIng,    setNewIng]    = useState({ name:"", category:"Spirits", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:"", par:"" });
-  const [newRec,    setNewRec]    = useState({ name:"", ings:[] });
+  const [newIng,    setNewIng]    = useState({ name:"", category:"Spirits", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:"", par:"", costPerPurchaseUnit:"" });
+  const [newRec,    setNewRec]    = useState({ name:"", salePrice:"", ings:[] });
   const [newRI,     setNewRI]     = useState({ ingredientId:"", quantity:"" });
   const [csvError,  setCsvError]  = useState("");
 
@@ -739,6 +755,45 @@ export default function BarBuddy() {
               </div>
             ))}
           </div>
+
+          {/* Profit snapshot */}
+          {(() => {
+            const ingMap = Object.fromEntries(ingredients.map(i=>[i.id,i]));
+            const totalRev = recipes.reduce((a,r)=>a+(num(r.salePrice)*num(monthlySales[r.id])),0);
+            const totalCost = recipes.reduce((a,r)=>a+(calcPourCost(r,ingMap)*num(monthlySales[r.id])),0);
+            const gp = totalRev - totalCost;
+            const margin = totalRev>0 ? (gp/totalRev)*100 : 0;
+            if (totalRev===0) return null;
+            return (
+              <div className="card" style={{marginBottom:10,borderColor:margin>=70?"#86efac40":margin>=50?"#fcd34d40":"#fca5a540"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                  <span className="sect" style={{margin:0}}>Profit Snapshot</span>
+                  <button className="btn-icon" style={{fontSize:10,padding:"4px 10px",height:"auto",fontFamily:"var(--font-mono)",letterSpacing:".06em"}} onClick={()=>{setTab("setup");setSubTab("margins");}}>
+                    Full Report →
+                  </button>
+                </div>
+                <div className="g2">
+                  <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px 14px"}}>
+                    <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--accent)"}}>{fmtAUD(totalRev)}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".1em",textTransform:"uppercase",marginTop:2}}>Revenue</div>
+                  </div>
+                  <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px 14px"}}>
+                    <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--green)"}}>{fmtAUD(gp)}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".1em",textTransform:"uppercase",marginTop:2}}>Gross Profit</div>
+                  </div>
+                </div>
+                <div style={{marginTop:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>Avg margin</span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:margin>=70?"var(--green)":margin>=50?"var(--gold)":"var(--red)"}}>{margin.toFixed(1)}%</span>
+                  </div>
+                  <div style={{height:6,background:"var(--border)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${Math.min(100,margin)}%`,background:margin>=70?"var(--green)":margin>=50?"var(--gold)":"var(--red)",borderRadius:3,transition:"width .4s"}}/>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           {topUsed.length>0&&(
             <div className="card" style={{marginBottom:10}}>
               <span className="sect">Top Usage This Month</span>
@@ -1156,6 +1211,7 @@ export default function BarBuddy() {
           <div className="subtabs">
             <button className={`subtab ${subTab==="ingredients"?"on":""}`} onClick={()=>setSubTab("ingredients")}>Ingredients</button>
             <button className={`subtab ${subTab==="recipes"?"on":""}`} onClick={()=>setSubTab("recipes")}>Recipes</button>
+            <button className={`subtab ${subTab==="margins"?"on":""}`} onClick={()=>setSubTab("margins")}>Margins</button>
           </div>
 
           {subTab==="ingredients" && (
@@ -1196,14 +1252,20 @@ export default function BarBuddy() {
                     <NumInput value={newIng.par} placeholder="e.g. 6" onChange={v=>setNewIng(p=>({...p,par:v}))} />
                   </div>
                 </div>
+                <div className="field">
+                  <label className="field-label">Cost per {newIng.purchaseUnit} (AUD)</label>
+                  <NumInput value={newIng.costPerPurchaseUnit} placeholder="e.g. 85.00" onChange={v=>setNewIng(p=>({...p,costPerPurchaseUnit:v}))}
+                    sublabel={newIng.costPerPurchaseUnit&&newIng.purchaseSize ? `= ${fmtAUD(num(newIng.costPerPurchaseUnit)/num(newIng.purchaseSize))} per ${newIng.recipeUnit}` : ""}
+                  />
+                </div>
                 {newIng.purchaseSize&&newIng.par&&(
                   <div className="cbar">1 <b>{newIng.purchaseUnit}</b> = <b>{newIng.purchaseSize}{newIng.recipeUnit}</b><br/>Par = <b>{newIng.par} {newIng.purchaseUnit}s</b> = <b>{(num(newIng.par)*num(newIng.purchaseSize)).toLocaleString()}{newIng.recipeUnit}</b></div>
                 )}
                 <button className="btn-primary" style={{marginTop:14}} onClick={()=>{
                   if(!newIng.name||!newIng.purchaseSize||!newIng.par) return showToast("Fill all fields");
-                  const upd=[...ingredients,{id:Date.now(),name:newIng.name,category:newIng.category,recipeUnit:newIng.recipeUnit,purchaseUnit:newIng.purchaseUnit,purchaseSize:num(newIng.purchaseSize),par:num(newIng.par)}];
+                  const upd=[...ingredients,{id:Date.now(),name:newIng.name,category:newIng.category,recipeUnit:newIng.recipeUnit,purchaseUnit:newIng.purchaseUnit,purchaseSize:num(newIng.purchaseSize),par:num(newIng.par),costPerPurchaseUnit:num(newIng.costPerPurchaseUnit)}];
                   setIngredients(upd); saveLib(upd,recipes);
-                  setNewIng({name:"",category:"Spirits",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:"",par:""});
+                  setNewIng({name:"",category:"Spirits",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:"",par:"",costPerPurchaseUnit:""});
                   showToast("Ingredient saved");
                 }}>Add Ingredient</button>
               </div>
@@ -1256,10 +1318,16 @@ export default function BarBuddy() {
                                 <NumInput value={editIng.par} placeholder="e.g. 6" onChange={v=>setEditIng(p=>({...p,par:v}))} />
                               </div>
                             </div>
+                            <div className="field">
+                              <label className="field-label">Cost per {editIng.purchaseUnit} (AUD)</label>
+                              <NumInput value={editIng.costPerPurchaseUnit} placeholder="e.g. 85.00" onChange={v=>setEditIng(p=>({...p,costPerPurchaseUnit:v}))}
+                                sublabel={editIng.costPerPurchaseUnit&&editIng.purchaseSize ? `= ${fmtAUD(num(editIng.costPerPurchaseUnit)/num(editIng.purchaseSize))} per ${editIng.recipeUnit}` : ""}
+                              />
+                            </div>
                             <div style={{display:"flex",gap:8}}>
                               <button className="btn-primary" style={{flex:1}} onClick={()=>{
                                 if(!editIng.name||!editIng.purchaseSize||!editIng.par) return showToast("Fill all fields");
-                                const upd=ingredients.map(i=>i.id===ing.id?{...i,...editIng,purchaseSize:num(editIng.purchaseSize),par:num(editIng.par)}:i);
+                                const upd=ingredients.map(i=>i.id===ing.id?{...i,...editIng,purchaseSize:num(editIng.purchaseSize),par:num(editIng.par),costPerPurchaseUnit:num(editIng.costPerPurchaseUnit)}:i);
                                 setIngredients(upd); saveLib(upd,recipes);
                                 setEditIngId(null); showToast("Ingredient updated");
                               }}>Save Changes</button>
@@ -1284,11 +1352,12 @@ export default function BarBuddy() {
                                 <span className="pill">{ing.purchaseUnit}</span>
                                 <span className="pill">1 {ing.purchaseUnit} = {ing.purchaseSize}{ing.recipeUnit}</span>
                                 <span className="tag">par: {ing.par}</span>
+                                {ing.costPerPurchaseUnit ? <span className="tag-g">{fmtAUD(ing.costPerPurchaseUnit)}/{ing.purchaseUnit}</span> : null}
                               </div>
                             </div>
                             <button className="btn-icon" style={{flexShrink:0}} onClick={()=>{
                               setEditIngId(ing.id);
-                              setEditIng({name:ing.name,category:ing.category,recipeUnit:ing.recipeUnit,purchaseUnit:ing.purchaseUnit,purchaseSize:String(ing.purchaseSize),par:String(ing.par)});
+                              setEditIng({name:ing.name,category:ing.category,recipeUnit:ing.recipeUnit,purchaseUnit:ing.purchaseUnit,purchaseSize:String(ing.purchaseSize),par:String(ing.par),costPerPurchaseUnit:String(ing.costPerPurchaseUnit||"")});
                             }}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
@@ -1310,6 +1379,10 @@ export default function BarBuddy() {
                 <div className="field">
                   <label className="field-label">Drink Name</label>
                   <TextInput placeholder="e.g. Aperol Spritz" value={newRec.name} onChange={v=>setNewRec(p=>({...p,name:v}))} />
+                </div>
+                <div className="field">
+                  <label className="field-label">Sale Price (AUD)</label>
+                  <NumInput value={newRec.salePrice} placeholder="e.g. 22.00" onChange={v=>setNewRec(p=>({...p,salePrice:v}))} />
                 </div>
 
                 {/* Ingredient picker with search */}
@@ -1348,19 +1421,17 @@ export default function BarBuddy() {
                     if(!newRec.name||newRec.ings.length===0) return showToast("Need name + 1 ingredient");
                     let upd;
                     if(editRecId) {
-                      // update existing recipe
-                      upd=recipes.map(r=>r.id===editRecId?{...r,name:newRec.name,ingredients:newRec.ings}:r);
+                      upd=recipes.map(r=>r.id===editRecId?{...r,name:newRec.name,salePrice:num(newRec.salePrice),ingredients:newRec.ings}:r);
                       setEditRecId(null);
                       showToast("Recipe updated");
                     } else {
-                      // new recipe
-                      upd=[...recipes,{id:Date.now(),name:newRec.name,ingredients:newRec.ings}];
+                      upd=[...recipes,{id:Date.now(),name:newRec.name,salePrice:num(newRec.salePrice),ingredients:newRec.ings}];
                       showToast("Recipe saved");
                     }
                     setRecipes(upd); saveLib(ingredients,upd);
-                    setNewRec({name:"",ings:[]});
+                    setNewRec({name:"",salePrice:"",ings:[]});
                   }}>{editRecId?"Update Recipe":"Save Recipe"}</button>
-                  {editRecId&&<button className="btn-secondary" onClick={()=>{setEditRecId(null);setNewRec({name:"",ings:[]});}}>Cancel</button>}
+                  {editRecId&&<button className="btn-secondary" onClick={()=>{setEditRecId(null);setNewRec({name:"",salePrice:"",ings:[]});}}>Cancel</button>}
                 </div>
                 {newRec.ings.length>0&&(
                   <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:10,padding:14}}>
@@ -1395,7 +1466,7 @@ export default function BarBuddy() {
                         <button className="btn-icon" onClick={()=>{
                           // Load recipe into the build form for editing
                           setEditRecId(recipe.id);
-                          setNewRec({name:recipe.name, ings:recipe.ingredients.map(ri=>({ingredientId:ri.ingredientId,quantity:ri.quantity}))});
+                          setNewRec({name:recipe.name, salePrice:String(recipe.salePrice||""), ings:recipe.ingredients.map(ri=>({ingredientId:ri.ingredientId,quantity:ri.quantity}))});
                           setNewRI({ingredientId:"",quantity:""});
                           setRecSearch("");
                           window.scrollTo({top:0,behavior:"smooth"});
@@ -1408,7 +1479,8 @@ export default function BarBuddy() {
                         </button>
                       </div>
                     </div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
+                      {recipe.salePrice ? <span className="tag-g">{fmtAUD(recipe.salePrice)}</span> : null}
                       {recipe.ingredients.map((ri,idx)=>{
                         const ing=ingredients.find(i=>i.id===ri.ingredientId);
                         return <span key={idx} className="tag">{ing?.name}: {ri.quantity}{ing?.recipeUnit}</span>;
@@ -1419,8 +1491,131 @@ export default function BarBuddy() {
               </div>
             </div>
           )}
-        </div>
-      )}
+
+          {subTab==="margins" && (
+            <div>
+              {/* Summary cards */}
+              {(() => {
+                const ingMap = Object.fromEntries(ingredients.map(i=>[i.id,i]));
+                const recipesWithMargin = recipes.map(r=>{
+                  const pourCost = calcPourCost(r, ingMap);
+                  const sale = num(r.salePrice);
+                  const gp = sale - pourCost;
+                  const margin = sale > 0 ? (gp/sale)*100 : 0;
+                  const qtySold = num(monthlySales[r.id]);
+                  const revenue = sale * qtySold;
+                  const costTotal = pourCost * qtySold;
+                  return {...r, pourCost, sale, gp, margin, qtySold, revenue, costTotal};
+                }).filter(r=>r.sale>0);
+
+                const totalRevenue = recipesWithMargin.reduce((a,r)=>a+r.revenue,0);
+                const totalCost    = recipesWithMargin.reduce((a,r)=>a+r.costTotal,0);
+                const totalGP      = totalRevenue - totalCost;
+                const avgMargin    = totalRevenue > 0 ? (totalGP/totalRevenue)*100 : 0;
+                const sorted       = [...recipesWithMargin].sort((a,b)=>b.margin-a.margin);
+                const topPerf      = sorted.slice(0,3);
+                const bottomPerf   = sorted.slice(-3).reverse();
+
+                return (
+                  <>
+                    {/* Revenue summary */}
+                    <div className="card" style={{marginBottom:10}}>
+                      <span className="sect">This Month</span>
+                      <div className="g3" style={{marginBottom:0}}>
+                        {[
+                          {l:"Revenue",  v:fmtAUD(totalRevenue), col:"var(--accent)"},
+                          {l:"Pour Cost",v:fmtAUD(totalCost),    col:"var(--red)"},
+                          {l:"Gross Profit",v:fmtAUD(totalGP),   col:"var(--green)"},
+                        ].map(s=>(
+                          <div key={s.l} style={{textAlign:"center",padding:"14px 8px",background:"var(--surface2)",borderRadius:12}}>
+                            <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:700,color:s.col,lineHeight:1}}>{s.v}</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".1em",textTransform:"uppercase",marginTop:4}}>{s.l}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {totalRevenue>0&&(
+                        <div style={{marginTop:12,textAlign:"center",fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-mid)"}}>
+                          Avg margin <span style={{color:avgMargin>=70?"var(--green)":avgMargin>=50?"var(--gold)":"var(--red)",fontWeight:600}}>{avgMargin.toFixed(1)}%</span>
+                        </div>
+                      )}
+                      {totalRevenue===0&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:10,textAlign:"center"}}>Log sales to see revenue data</div>}
+                    </div>
+
+                    {/* Top performers */}
+                    {topPerf.length>0&&(
+                      <div className="card" style={{marginBottom:10}}>
+                        <span className="sect">🏆 Top Margin</span>
+                        {topPerf.map((r,i)=>(
+                          <div key={r.id} className="row">
+                            <div>
+                              <div style={{fontSize:14,fontWeight:500,marginBottom:2}}>{r.name}</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>
+                                Pour cost {fmtAUD(r.pourCost)} · Sale {fmtAUD(r.sale)}
+                              </div>
+                            </div>
+                            <div style={{textAlign:"right"}}>
+                              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:700,color:"var(--green)"}}>{r.margin.toFixed(0)}%</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)"}}>{fmtAUD(r.gp)} GP</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Bottom performers */}
+                    {bottomPerf.length>0&&recipesWithMargin.length>3&&(
+                      <div className="card" style={{marginBottom:10}}>
+                        <span className="sect">⚠ Lowest Margin</span>
+                        {bottomPerf.map(r=>(
+                          <div key={r.id} className="row">
+                            <div>
+                              <div style={{fontSize:14,fontWeight:500,marginBottom:2}}>{r.name}</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>
+                                Pour cost {fmtAUD(r.pourCost)} · Sale {fmtAUD(r.sale)}
+                              </div>
+                            </div>
+                            <div style={{textAlign:"right"}}>
+                              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:700,color:r.margin<30?"var(--red)":"var(--gold)"}}>{r.margin.toFixed(0)}%</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)"}}>{fmtAUD(r.gp)} GP</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Full margin table */}
+                    <div className="card">
+                      <span className="sect">All Items — sorted by margin</span>
+                      {sorted.map(r=>{
+                        const barW = Math.min(100, r.margin);
+                        const barCol = r.margin>=70?"var(--green)":r.margin>=50?"var(--gold)":"var(--red)";
+                        return (
+                          <div key={r.id} style={{paddingBottom:14,marginBottom:12,borderBottom:"1px solid var(--border)"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                              <div style={{flex:1,paddingRight:12}}>
+                                <div style={{fontSize:13,fontWeight:500,marginBottom:2}}>{r.name}</div>
+                                <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)"}}>
+                                  Pour {fmtAUD(r.pourCost)} · Sale {fmtAUD(r.sale)} · GP {fmtAUD(r.gp)}
+                                </div>
+                              </div>
+                              <div style={{textAlign:"right",minWidth:60}}>
+                                <div style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:700,color:barCol}}>{r.margin.toFixed(0)}%</div>
+                              </div>
+                            </div>
+                            {/* Margin bar */}
+                            <div style={{height:4,background:"var(--border)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${barW}%`,background:barCol,borderRadius:2,transition:"width .3s"}}/>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {recipesWithMargin.length===0&&<div className="no-results">Add sale prices to recipes to see margins</div>}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
 
       {/* BOTTOM NAV */}
       <nav className="nav">
