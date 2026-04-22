@@ -1,1737 +1,1131 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react"
 
-// ─── CATEGORIES ───────────────────────────────────────────────────────────────
-const CATEGORIES = [
-  "Spirits", "Liqueurs", "Wine", "Beer & Cider",
-  "Bitters", "Juice & Cordials", "Syrups", "Garnishes", "Dry Goods", "Other"
-];
+// ─── SEED DATA ────────────────────────────────────────────────────────────────
 
-// Each category gets a unique vivid colour identity used throughout the UI
-const CAT_COLOR = {
-  "Spirits":          { bg:"#FEF3C7", text:"#92400E", border:"#FCD34D", dot:"#B45309" },
-  "Liqueurs":         { bg:"#EDE9FE", text:"#5B21B6", border:"#C4B5FD", dot:"#7C3AED" },
-  "Wine":             { bg:"#FEE2E2", text:"#7F1D1D", border:"#FCA5A5", dot:"#991B1B" },
-  "Beer & Cider":     { bg:"#FFFBEB", text:"#78350F", border:"#FDE68A", dot:"#D97706" },
-  "Bitters":          { bg:"#F0FDF4", text:"#14532D", border:"#86EFAC", dot:"#166534" },
-  "Juice & Cordials": { bg:"#FFF7ED", text:"#9A3412", border:"#FDBA74", dot:"#EA580C" },
-  "Syrups":           { bg:"#FDF2F8", text:"#9D174D", border:"#F9A8D4", dot:"#DB2777" },
-  "Garnishes":        { bg:"#F0FDF4", text:"#14532D", border:"#86EFAC", dot:"#16A34A" },
-  "Dry Goods":        { bg:"#F8FAFC", text:"#334155", border:"#CBD5E1", dot:"#475569" },
-  "Other":            { bg:"#EFF6FF", text:"#1E40AF", border:"#93C5FD", dot:"#2563EB" },
-};
-const catColor = (cat) => CAT_COLOR[cat] || CAT_COLOR["Other"];
+const CATEGORY_META = {
+  "Spirits":         { color: "#B45309", bg: "#FEF3C7", text: "#92400E", border: "#D97706" },
+  "Liqueurs":        { color: "#7C3AED", bg: "#EDE9FE", text: "#5B21B6", border: "#8B5CF6" },
+  "Wine":            { color: "#991B1B", bg: "#FEE2E2", text: "#7F1D1D", border: "#DC2626" },
+  "Beer & Cider":    { color: "#D97706", bg: "#FEF9C3", text: "#92400E", border: "#F59E0B" },
+  "Bitters":         { color: "#166534", bg: "#DCFCE7", text: "#14532D", border: "#22C55E" },
+  "Juice & Cordials":{ color: "#EA580C", bg: "#FFEDD5", text: "#9A3412", border: "#F97316" },
+  "Syrups":          { color: "#DB2777", bg: "#FCE7F3", text: "#9D174D", border: "#EC4899" },
+  "Garnishes":       { color: "#16A34A", bg: "#DCFCE7", text: "#14532D", border: "#22C55E" },
+  "Dry Goods":       { color: "#475569", bg: "#F1F5F9", text: "#334155", border: "#64748B" },
+  "Other":           { color: "#2563EB", bg: "#DBEAFE", text: "#1E3A8A", border: "#3B82F6" },
+}
 
-// ─── CATEGORY TAG (module level — used throughout all screens) ────────────────
-function CatTag({ category }) {
-  const cc = catColor(category);
+const DEFAULT_INGREDIENTS = [
+  // Spirits
+  { id:"s1",  name:"Chivas Regal 12",          category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:3,  costPerPurchaseUnit:85 },
+  { id:"s2",  name:"Yellow Rose Rye",           category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:95 },
+  { id:"s3",  name:"Maker's Mark",              category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:3,  costPerPurchaseUnit:72 },
+  { id:"s4",  name:"Jameson",                   category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:3,  costPerPurchaseUnit:58 },
+  { id:"s5",  name:"Toki Blended Whisky",       category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:3,  costPerPurchaseUnit:65 },
+  { id:"s6",  name:"Olmeca Tequila",            category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:48 },
+  { id:"s7",  name:"Havana Club 3",             category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:42 },
+  { id:"s8",  name:"Beefeater Gin",             category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:3,  costPerPurchaseUnit:38 },
+  { id:"s9",  name:"Absolut Vanilla",           category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:42 },
+  { id:"s10", name:"Absolut Vodka",             category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:3,  costPerPurchaseUnit:38 },
+  { id:"s11", name:"Vida Mezcal",               category:"Spirits",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:72 },
+  // Liqueurs
+  { id:"l1",  name:"Amaro Montenegro",          category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:48 },
+  { id:"l2",  name:"Campari",                   category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:38 },
+  { id:"l3",  name:"Baileys",                   category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:32 },
+  { id:"l4",  name:"Pavan",                     category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:45 },
+  { id:"l5",  name:"Marie Brizard Cacao Blanc", category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:38 },
+  { id:"l6",  name:"Marie Brizard Elderflower", category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:38 },
+  { id:"l7",  name:"DeKuyper Peach",            category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:28 },
+  { id:"l8",  name:"DeKuyper Butterscotch",     category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:28 },
+  { id:"l9",  name:"DeKuyper Sour Apple",       category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:28 },
+  { id:"l10", name:"Malibu",                    category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:32 },
+  { id:"l11", name:"Triple Sec",                category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:3,  costPerPurchaseUnit:22 },
+  { id:"l12", name:"Martini Bianco",            category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:2,  costPerPurchaseUnit:18 },
+  { id:"l13", name:"Sweet Vermouth",            category:"Liqueurs",         recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:2,  costPerPurchaseUnit:18 },
+  // Syrups
+  { id:"sy1", name:"Monin Caramel",             category:"Syrups",           recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:18 },
+  { id:"sy2", name:"Monin Strawberry",          category:"Syrups",           recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:700, par:2,  costPerPurchaseUnit:18 },
+  { id:"sy3", name:"Maple Syrup",               category:"Syrups",           recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:2,  costPerPurchaseUnit:12 },
+  { id:"sy4", name:"Orgeat Crawleys",           category:"Syrups",           recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:500, par:2,  costPerPurchaseUnit:22 },
+  { id:"sy5", name:"Sugar Syrup",               category:"Syrups",           recipeUnit:"ml", purchaseUnit:"2kg bag", purchaseSize:3000, par:1, costPerPurchaseUnit:4 },
+  // Juice & Cordials
+  { id:"j1",  name:"Lemon Juice",               category:"Juice & Cordials", recipeUnit:"ml", purchaseUnit:"litre",  purchaseSize:1000, par:4, costPerPurchaseUnit:6 },
+  { id:"j2",  name:"Lime Juice",                category:"Juice & Cordials", recipeUnit:"ml", purchaseUnit:"litre",  purchaseSize:1000, par:4, costPerPurchaseUnit:8 },
+  { id:"j3",  name:"Apple Juice",               category:"Juice & Cordials", recipeUnit:"ml", purchaseUnit:"litre",  purchaseSize:1000, par:3, costPerPurchaseUnit:4 },
+  { id:"j4",  name:"Passionfruit Pulp",         category:"Juice & Cordials", recipeUnit:"ml", purchaseUnit:"500ml can",purchaseSize:500,par:4, costPerPurchaseUnit:5 },
+  { id:"j5",  name:"Cranberry Juice",           category:"Juice & Cordials", recipeUnit:"ml", purchaseUnit:"litre",  purchaseSize:1000, par:3, costPerPurchaseUnit:5 },
+  { id:"j6",  name:"Pineapple Juice",           category:"Juice & Cordials", recipeUnit:"ml", purchaseUnit:"litre",  purchaseSize:1000, par:3, costPerPurchaseUnit:4 },
+  { id:"j7",  name:"Aquafaba",                  category:"Juice & Cordials", recipeUnit:"ml", purchaseUnit:"litre",  purchaseSize:1000, par:2, costPerPurchaseUnit:3 },
+  // Bitters
+  { id:"b1",  name:"Chocolate Bitters",         category:"Bitters",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:200, par:2,  costPerPurchaseUnit:22 },
+  { id:"b2",  name:"Orange Bitters",            category:"Bitters",          recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:200, par:2,  costPerPurchaseUnit:22 },
+  // Beer & Cider
+  { id:"bc1", name:"Corona",                    category:"Beer & Cider",     recipeUnit:"unit", purchaseUnit:"case", purchaseSize:24, par:2,   costPerPurchaseUnit:58 },
+  { id:"bc2", name:"Great Northern Original",   category:"Beer & Cider",     recipeUnit:"unit", purchaseUnit:"case", purchaseSize:24, par:3,   costPerPurchaseUnit:42 },
+  { id:"bc3", name:"Great Northern Supercrisp", category:"Beer & Cider",     recipeUnit:"unit", purchaseUnit:"case", purchaseSize:24, par:3,   costPerPurchaseUnit:42 },
+  { id:"bc4", name:"Heineken Zero",             category:"Beer & Cider",     recipeUnit:"unit", purchaseUnit:"case", purchaseSize:24, par:2,   costPerPurchaseUnit:42 },
+  { id:"bc5", name:"James Squire Orchard Crush",category:"Beer & Cider",     recipeUnit:"unit", purchaseUnit:"case", purchaseSize:24, par:2,   costPerPurchaseUnit:52 },
+  // Wine
+  { id:"w1",  name:"Clover Hill NV",            category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:6,  costPerPurchaseUnit:38 },
+  { id:"w2",  name:"Bianca Vigna Prosecco",     category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:12, costPerPurchaseUnit:28 },
+  { id:"w3",  name:"Taittinger",                category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:3,  costPerPurchaseUnit:95 },
+  { id:"w4",  name:"Fiore Moscato",             category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:6,  costPerPurchaseUnit:22 },
+  { id:"w5",  name:"Hay Shed Hill Sauv Sem",    category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:6,  costPerPurchaseUnit:24 },
+  { id:"w6",  name:"Hesketh Sauv Blanc",        category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:6,  costPerPurchaseUnit:24 },
+  { id:"w7",  name:"Josef Chromy Riesling",     category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:4,  costPerPurchaseUnit:32 },
+  { id:"w8",  name:"Rockburn Pinot Gris",       category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:4,  costPerPurchaseUnit:28 },
+  { id:"w9",  name:"Haha Chardonnay",           category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:6,  costPerPurchaseUnit:22 },
+  { id:"w10", name:"Dalrymple Chardonnay",      category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:3,  costPerPurchaseUnit:48 },
+  { id:"w11", name:"Maison Saint AIX Rosé",     category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:6,  costPerPurchaseUnit:32 },
+  { id:"w12", name:"Santa Cristina Sangiovese Rosé",category:"Wine",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:750,par:6, costPerPurchaseUnit:22 },
+  { id:"w13", name:"Fickle Mistress Pinot Noir",category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:6,  costPerPurchaseUnit:22 },
+  { id:"w14", name:"Torres Ibericos Tempranillo",category:"Wine",recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:4,  costPerPurchaseUnit:28 },
+  { id:"w15", name:"Domaine Beaurenard Grenache Syrah",category:"Wine",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:750,par:4,costPerPurchaseUnit:38},
+  { id:"w16", name:"Little Berry Cabernet Sauvignon",category:"Wine",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:750,par:6,costPerPurchaseUnit:22},
+  { id:"w17", name:"Langmeil Valley Floor Shiraz",category:"Wine",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:750,par:4,  costPerPurchaseUnit:32 },
+  { id:"w18", name:"Leeuwin Estate Art Series Shiraz",category:"Wine",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:750,par:3,costPerPurchaseUnit:48},
+  { id:"w19", name:"Penfolds Bin 389",          category:"Wine", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:750, par:2,  costPerPurchaseUnit:120},
+  // Dry Goods
+  { id:"d1",  name:"Tajin",                     category:"Dry Goods",        recipeUnit:"g",  purchaseUnit:"bottle", purchaseSize:142, par:2,  costPerPurchaseUnit:6 },
+  { id:"d2",  name:"Fever-Tree Lime & Yuzu Soda",category:"Dry Goods",       recipeUnit:"ml", purchaseUnit:"4-pack", purchaseSize:800, par:5,  costPerPurchaseUnit:12 },
+]
+
+const DEFAULT_RECIPES = [
+  // Cocktails
+  { id:"r1",  name:"Smoke & Silk",     category:"Cocktails", salePrice:25, ingredients:[{id:"s1",qty:60},{id:"sy3",qty:15},{id:"b1",qty:2.4}] },
+  { id:"r2",  name:"Fifth Avenue",     category:"Cocktails", salePrice:25, ingredients:[{id:"s2",qty:45},{id:"l1",qty:15},{id:"b2",qty:1.8}] },
+  { id:"r3",  name:"Crimson Bloom",    category:"Cocktails", salePrice:22, ingredients:[{id:"s3",qty:20},{id:"l13",qty:20},{id:"l2",qty:20}] },
+  { id:"r4",  name:"Velour Drift",     category:"Cocktails", salePrice:22, ingredients:[{id:"s4",qty:40},{id:"l3",qty:20},{id:"sy1",qty:10}] },
+  { id:"r5",  name:"Kisetsu",          category:"Cocktails", salePrice:22, ingredients:[{id:"s3",qty:40},{id:"l5",qty:20},{id:"j1",qty:25},{id:"sy2",qty:10}] },
+  { id:"r6",  name:"Golden Pulse",     category:"Cocktails", salePrice:22, ingredients:[{id:"s4",qty:30},{id:"l6",qty:30},{id:"j3",qty:60},{id:"j4",qty:30},{id:"j7",qty:30}] },
+  { id:"r7",  name:"Jasmine Mist",     category:"Cocktails", salePrice:23, ingredients:[{id:"s8",qty:45},{id:"l6",qty:15},{id:"l12",qty:5}] },
+  { id:"r8",  name:"Yuzu High",        category:"Cocktails", salePrice:22, ingredients:[{id:"s5",qty:60},{id:"d2",qty:90}] },
+  { id:"r9",  name:"Neon Collins",     category:"Cocktails", salePrice:22, ingredients:[{id:"s10",qty:30}] },
+  { id:"r10", name:"First Light",      category:"Cocktails", salePrice:23, ingredients:[{id:"s6",qty:30},{id:"l10",qty:30},{id:"j2",qty:30},{id:"sy4",qty:10},{id:"l11",qty:5}] },
+  { id:"r11", name:"Hikari Muse",      category:"Cocktails", salePrice:22, ingredients:[{id:"s9",qty:45},{id:"l7",qty:15},{id:"sy2",qty:20},{id:"j1",qty:25},{id:"j7",qty:30}] },
+  { id:"r12", name:"Kin Bite",         category:"Cocktails", salePrice:22, ingredients:[{id:"s8",qty:30},{id:"l8",qty:15},{id:"l9",qty:15},{id:"j1",qty:30},{id:"sy5",qty:30},{id:"j7",qty:30}] },
+  { id:"r13", name:"Blush Rose",       category:"Cocktails", salePrice:20, ingredients:[{id:"l4",qty:30},{id:"j1",qty:20},{id:"j5",qty:40},{id:"w2",qty:90}] },
+  { id:"r14", name:"Ember Flame",      category:"Cocktails", salePrice:22, ingredients:[{id:"s7",qty:30},{id:"l11",qty:30},{id:"j2",qty:30},{id:"j6",qty:30},{id:"sy4",qty:10},{id:"s11",qty:15}] },
+  { id:"r15", name:"Japanese Highball",category:"Cocktails", salePrice:20, ingredients:[{id:"s5",qty:60}] },
+  // Beer
+  { id:"b1r", name:"Corona",                    category:"Beer", salePrice:12, ingredients:[{id:"bc1",qty:1}] },
+  { id:"b2r", name:"Great Northern Original",   category:"Beer", salePrice:10, ingredients:[{id:"bc2",qty:1}] },
+  { id:"b3r", name:"Great Northern Supercrisp", category:"Beer", salePrice:10, ingredients:[{id:"bc3",qty:1}] },
+  { id:"b4r", name:"Heineken Zero",             category:"Beer", salePrice:9,  ingredients:[{id:"bc4",qty:1}] },
+  { id:"b5r", name:"James Squire Orchard Crush",category:"Beer", salePrice:12, ingredients:[{id:"bc5",qty:1}] },
+  // Wine - Sparkling
+  { id:"ws1", name:"Clover Hill NV",            category:"Wine", salePrice:14, ingredients:[{id:"w1",qty:120}] },
+  { id:"ws2", name:"Bianca Vigna Prosecco",     category:"Wine", salePrice:14, ingredients:[{id:"w2",qty:120}] },
+  { id:"ws3", name:"Taittinger",                category:"Wine", salePrice:31, ingredients:[{id:"w3",qty:120}] },
+  // Wine - Still 150ml
+  { id:"wf1", name:"Fiore Moscato 150ml",       category:"Wine", salePrice:12, ingredients:[{id:"w4",qty:150}] },
+  { id:"wf2", name:"Hay Shed Hill Sauv Sem 150ml",category:"Wine",salePrice:12,ingredients:[{id:"w5",qty:150}] },
+  { id:"wf3", name:"Hesketh Sauv Blanc 150ml",  category:"Wine", salePrice:12, ingredients:[{id:"w6",qty:150}] },
+  { id:"wf4", name:"Josef Chromy Riesling 150ml",category:"Wine",salePrice:16, ingredients:[{id:"w7",qty:150}] },
+  { id:"wf5", name:"Rockburn Pinot Gris 150ml", category:"Wine", salePrice:15, ingredients:[{id:"w8",qty:150}] },
+  { id:"wf6", name:"Haha Chardonnay 150ml",     category:"Wine", salePrice:13, ingredients:[{id:"w9",qty:150}] },
+  { id:"wf7", name:"Dalrymple Chardonnay 150ml",category:"Wine", salePrice:21, ingredients:[{id:"w10",qty:150}] },
+  { id:"wf8", name:"Maison Saint AIX Rosé 150ml",category:"Wine",salePrice:18, ingredients:[{id:"w11",qty:150}] },
+  { id:"wf9", name:"Santa Cristina Rosé 150ml", category:"Wine", salePrice:13, ingredients:[{id:"w12",qty:150}] },
+  { id:"wf10",name:"Fickle Mistress Pinot Noir 150ml",category:"Wine",salePrice:13,ingredients:[{id:"w13",qty:150}] },
+  { id:"wf11",name:"Torres Tempranillo 150ml",  category:"Wine", salePrice:15, ingredients:[{id:"w14",qty:150}] },
+  { id:"wf12",name:"Domaine Beaurenard Grenache 150ml",category:"Wine",salePrice:19,ingredients:[{id:"w15",qty:150}] },
+  { id:"wf13",name:"Little Berry Cabernet Sauv 150ml",category:"Wine",salePrice:12,ingredients:[{id:"w16",qty:150}] },
+  { id:"wf14",name:"Langmeil Valley Floor Shiraz 150ml",category:"Wine",salePrice:19,ingredients:[{id:"w17",qty:150}] },
+  { id:"wf15",name:"Leeuwin Art Series Shiraz 150ml",category:"Wine",salePrice:22,ingredients:[{id:"w18",qty:150}] },
+  { id:"wf16",name:"Penfolds Bin 389 150ml",    category:"Wine", salePrice:61, ingredients:[{id:"w19",qty:150}] },
+  // Wine - Still 250ml
+  { id:"wt1", name:"Fiore Moscato 250ml",       category:"Wine", salePrice:18, ingredients:[{id:"w4",qty:250}] },
+  { id:"wt2", name:"Hay Shed Hill Sauv Sem 250ml",category:"Wine",salePrice:18,ingredients:[{id:"w5",qty:250}] },
+  { id:"wt3", name:"Hesketh Sauv Blanc 250ml",  category:"Wine", salePrice:18, ingredients:[{id:"w6",qty:250}] },
+  { id:"wt4", name:"Josef Chromy Riesling 250ml",category:"Wine",salePrice:26, ingredients:[{id:"w7",qty:250}] },
+  { id:"wt5", name:"Rockburn Pinot Gris 250ml", category:"Wine", salePrice:25, ingredients:[{id:"w8",qty:250}] },
+  { id:"wt6", name:"Haha Chardonnay 250ml",     category:"Wine", salePrice:21, ingredients:[{id:"w9",qty:250}] },
+  { id:"wt7", name:"Dalrymple Chardonnay 250ml",category:"Wine", salePrice:36, ingredients:[{id:"w10",qty:250}] },
+  { id:"wt8", name:"Maison Saint AIX Rosé 250ml",category:"Wine",salePrice:29, ingredients:[{id:"w11",qty:250}] },
+  { id:"wt9", name:"Santa Cristina Rosé 250ml", category:"Wine", salePrice:21, ingredients:[{id:"w12",qty:250}] },
+  { id:"wt10",name:"Fickle Mistress Pinot Noir 250ml",category:"Wine",salePrice:21,ingredients:[{id:"w13",qty:250}] },
+  { id:"wt11",name:"Torres Tempranillo 250ml",  category:"Wine", salePrice:24, ingredients:[{id:"w14",qty:250}] },
+  { id:"wt12",name:"Domaine Beaurenard Grenache 250ml",category:"Wine",salePrice:31,ingredients:[{id:"w15",qty:250}] },
+  { id:"wt13",name:"Little Berry Cabernet Sauv 250ml",category:"Wine",salePrice:18,ingredients:[{id:"w16",qty:250}] },
+  { id:"wt14",name:"Langmeil Valley Floor Shiraz 250ml",category:"Wine",salePrice:28,ingredients:[{id:"w17",qty:250}] },
+  { id:"wt15",name:"Leeuwin Art Series Shiraz 250ml",category:"Wine",salePrice:36,ingredients:[{id:"w18",qty:250}] },
+  { id:"wt16",name:"Penfolds Bin 389 250ml",    category:"Wine", salePrice:101,ingredients:[{id:"w19",qty:250}] },
+]
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+const isBeer = (ing) => ing.category === "Beer & Cider"
+const countUnit = (ing) => isBeer(ing) ? "bottle" : ing.purchaseUnit
+const countSize = (ing) => isBeer(ing) ? 1 : ing.purchaseSize
+const countToBase = (ing, v) => (v || 0) * countSize(ing)   // count units → recipe units
+const baseToCount = (ing, v) => (v || 0) / countSize(ing)   // recipe units → count units
+const toPurch = (ing, baseVal) => baseVal / ing.purchaseSize // recipe units → purchase units
+
+const costPerUnit = (ing) => ing.costPerPurchaseUnit / ing.purchaseSize
+
+const calcPourCost = (recipe, ingMap) => {
+  if (!recipe || !recipe.ingredients) return 0
+  return recipe.ingredients.reduce((sum, ri) => {
+    const ing = ingMap[ri.id]
+    if (!ing) return sum
+    return sum + ri.qty * costPerUnit(ing)
+  }, 0)
+}
+
+const calcUsage = (monthlySales, recipes, ingMap) => {
+  const usage = {}
+  Object.entries(monthlySales).forEach(([recipeId, qty]) => {
+    const recipe = recipes.find(r => r.id === recipeId)
+    if (!recipe) return
+    recipe.ingredients.forEach(ri => {
+      usage[ri.id] = (usage[ri.id] || 0) + ri.qty * qty
+    })
+  })
+  return usage
+}
+
+const calcTheoClose = (ingredients, openingStock, deliveries, usage) => {
+  const theoClose = {}
+  ingredients.forEach(ing => {
+    const open = countToBase(ing, openingStock[ing.id] || 0)
+    const del  = countToBase(ing, deliveries[ing.id] || 0)
+    const used = usage[ing.id] || 0
+    theoClose[ing.id] = open + del - used
+  })
+  return theoClose
+}
+
+const calcVariance = (ing, theoClose, closingStock) => {
+  const tP = toPurch(ing, theoClose[ing.id] || 0)
+  const aP = toPurch(ing, countToBase(ing, closingStock[ing.id] || 0))
+  return aP - tP
+}
+
+const orderSuggestion = (ing, theoClose) => {
+  const remaining = toPurch(ing, theoClose[ing.id] || 0)
+  return Math.max(0, Math.ceil(ing.par - remaining))
+}
+
+const fmtAUD = (v) => `$${Math.abs(v).toFixed(2)}`
+const fmtPct = (v) => `${v.toFixed(1)}%`
+
+// ─── ATOMS ────────────────────────────────────────────────────────────────────
+
+const NumInput = ({ value, onChange, style = {} }) => {
+  const [local, setLocal] = useState(String(value ?? ""))
+  const prevValue = useRef(value)
+  useEffect(() => {
+    if (prevValue.current !== value) {
+      setLocal(String(value ?? ""))
+      prevValue.current = value
+    }
+  }, [value])
   return (
-    <span style={{
-      display:"inline-flex", alignItems:"center", gap:5,
-      background:cc.bg, color:cc.text, border:`1px solid ${cc.border}`,
-      fontFamily:"'IBM Plex Mono','Courier New',monospace",
-      fontSize:10, padding:"3px 9px", borderRadius:20,
-      whiteSpace:"nowrap", flexShrink:0, letterSpacing:".04em",
-    }}>
-      <span style={{width:5,height:5,borderRadius:"50%",background:cc.dot,display:"inline-block",flexShrink:0}}/>
+    <input
+      type="text"
+      inputMode="decimal"
+      value={local}
+      onChange={e => setLocal(e.target.value)}
+      onBlur={() => {
+        const n = parseFloat(local)
+        const safe = isNaN(n) ? 0 : n
+        setLocal(String(safe))
+        onChange(safe)
+      }}
+      style={{ width: 72, textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontSize: 13, padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 4, background: "#fff", ...style }}
+    />
+  )
+}
+
+const SearchBar = ({ value, onChange, placeholder }) => (
+  <input
+    type="text"
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    placeholder={placeholder || "Search…"}
+    style={{ padding: "5px 10px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13, width: 200, outline: "none" }}
+  />
+)
+
+const CatPill = ({ category }) => {
+  const m = CATEGORY_META[category] || CATEGORY_META["Other"]
+  return (
+    <span style={{ display: "inline-block", padding: "1px 7px", borderRadius: 10, fontSize: 11, fontWeight: 600, background: m.bg, color: m.text, border: `1px solid ${m.border}`, whiteSpace: "nowrap" }}>
       {category}
     </span>
-  );
+  )
 }
 
-// ─── SEED DATA — Real bar data ────────────────────────────────────────────────
-const SEED_INGREDIENTS = [
-  // Spirits
-  { id: 1,  name: "Chivas Regal 12",               category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 85 },
-  { id: 2,  name: "Yellow Rose Rye",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 95 },
-  { id: 3,  name: "Maker's Mark",                   category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4,  costPerPurchaseUnit: 72 },
-  { id: 4,  name: "Jameson",                        category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4,  costPerPurchaseUnit: 58 },
-  { id: 5,  name: "Toki Blended Whisky",            category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 65 },
-  { id: 6,  name: "Olmeca Tequila",                 category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 48 },
-  { id: 7,  name: "Havana Club 3",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 42 },
-  { id: 8,  name: "Beefeater Gin",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 4,  costPerPurchaseUnit: 38 },
-  { id: 9,  name: "Absolut Vanilla",                category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 42 },
-  { id: 10, name: "Absolut Vodka",                  category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 38 },
-  { id: 11, name: "Vida Mezcal",                    category: "Spirits",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 72 },
-  // Liqueurs (inc. vermouth)
-  { id: 12, name: "Amaro Montenegro",               category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 48 },
-  { id: 13, name: "Campari",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 38 },
-  { id: 14, name: "Baileys",                        category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 32 },
-  { id: 15, name: "Pavan",                          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 45 },
-  { id: 16, name: "Marie Brizard Cacao Blanc",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 38 },
-  { id: 17, name: "Marie Brizard Elderflower",      category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 38 },
-  { id: 18, name: "DeKuyper Peach",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 28 },
-  { id: 19, name: "DeKuyper Butterscotch",          category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 28 },
-  { id: 20, name: "DeKuyper Sour Apple Puckers",    category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 28 },
-  { id: 21, name: "Malibu",                         category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 32 },
-  { id: 22, name: "Triple Sec",                     category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 3,  costPerPurchaseUnit: 22 },
-  { id: 23, name: "Martini Bianco",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 18 },
-  { id: 24, name: "Sweet Vermouth",                 category: "Liqueurs",         recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 18 },
-  // Syrups
-  { id: 25, name: "Monin Caramel Syrup",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 18 },
-  { id: 26, name: "Monin Strawberry Syrup",         category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 700,  par: 2,  costPerPurchaseUnit: 18 },
-  { id: 27, name: "Maple Syrup",                    category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 12 },
-  { id: 28, name: "Orgeat (Crawley's)",             category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 500,  par: 2,  costPerPurchaseUnit: 22 },
-  { id: 29, name: "Sugar Syrup (house)",            category: "Syrups",           recipeUnit: "ml",   purchaseUnit: "2kg bag", purchaseSize: 3000, par: 3,  costPerPurchaseUnit: 4 },
-  // Juice & Cordials
-  { id: 30, name: "Lemon Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4,  costPerPurchaseUnit: 6 },
-  { id: 31, name: "Lime Juice",                     category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4,  costPerPurchaseUnit: 8 },
-  { id: 32, name: "Apple Juice",                    category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3,  costPerPurchaseUnit: 4 },
-  { id: 33, name: "Passionfruit Pulp",              category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "can",     purchaseSize: 500,  par: 3,  costPerPurchaseUnit: 5 },
-  { id: 34, name: "Cranberry Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3,  costPerPurchaseUnit: 5 },
-  { id: 35, name: "Pineapple Juice",                category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 3,  costPerPurchaseUnit: 4 },
-  { id: 36, name: "Aquafaba",                       category: "Juice & Cordials", recipeUnit: "ml",   purchaseUnit: "litre",   purchaseSize: 1000, par: 4,  costPerPurchaseUnit: 3 },
-  // Bitters
-  { id: 37, name: "Chocolate Bitters",              category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2,  costPerPurchaseUnit: 22 },
-  { id: 38, name: "Orange Bitters",                 category: "Bitters",          recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 200,  par: 2,  costPerPurchaseUnit: 22 },
-  // Beer & Cider (ordered by case/24, counted individually)
-  { id: 39, name: "Corona (355ml)",                 category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 58 },
-  { id: 40, name: "Great Northern Original (330ml)",category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 42 },
-  { id: 41, name: "Great Northern Supercrisp (330ml)",category:"Beer & Cider",    recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 42 },
-  { id: 42, name: "Heineken Zero (330ml)",          category: "Beer & Cider",     recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 1,  costPerPurchaseUnit: 42 },
-  { id: 43, name: "James Squire Orchard Crush (345ml)",category:"Beer & Cider",   recipeUnit: "unit", purchaseUnit: "case",    purchaseSize: 24,   par: 2,  costPerPurchaseUnit: 52 },
-  // Wine — Sparkling & Champagne
-  { id: 44, name: "Clover Hill NV",                 category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 38 },
-  { id: 45, name: "Bianca Vigna Prosecco",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 12, costPerPurchaseUnit: 28 },
-  { id: 46, name: "Taittinger",                     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3,  costPerPurchaseUnit: 95 },
-  // Wine — Aromatic & Lighter White
-  { id: 47, name: "Fiore Moscato",                  category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
-  { id: 48, name: "Hay Shed Hill Sauvignon Semillon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 24 },
-  { id: 49, name: "Hesketh Sauvignon Blanc",        category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 24 },
-  { id: 50, name: "Josef Chromy Sgr Riesling",      category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 32 },
-  { id: 51, name: "Rockburn Pinot Gris",            category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 28 },
-  // Wine — Full Bodied White & Rosé
-  { id: 52, name: "Haha Chardonnay",                category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
-  { id: 53, name: "Dalrymple Chardonnay",           category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3,  costPerPurchaseUnit: 48 },
-  { id: 54, name: "Maison Saint AIX Rosé",          category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 32 },
-  { id: 55, name: "Santa Cristina Sangiovese Rosé", category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
-  // Wine — Lighter & Medium Red
-  { id: 56, name: "Fickle Mistress Pinot Noir",     category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
-  { id: 57, name: "Torres Ibericos Tempranillo",    category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 28 },
-  { id: 58, name: "Domaine Beaurenard Grenache Syrah",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 38 },
-  // Wine — Full Bodied Red
-  { id: 59, name: "Little Berry Cabernet Sauvignon",category:"Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 6,  costPerPurchaseUnit: 22 },
-  { id: 60, name: "Langmeil Valley Floor Shiraz",   category: "Wine",             recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 4,  costPerPurchaseUnit: 32 },
-  { id: 61, name: "Leeuwin Estate Art Series Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 3,  costPerPurchaseUnit: 48 },
-  { id: 62, name: "Penfolds Bin 389 Cabernet Shiraz",category:"Wine",            recipeUnit: "ml",   purchaseUnit: "bottle",  purchaseSize: 750,  par: 2,  costPerPurchaseUnit: 120 },
-  // Dry Goods
-  { id: 63, name: "Tajin",                          category: "Dry Goods",        recipeUnit: "g",    purchaseUnit: "bottle",  purchaseSize: 142,  par: 2,  costPerPurchaseUnit: 6 },
-  { id: 64, name: "Fever-Tree Lime & Yuzu Soda",    category: "Dry Goods",        recipeUnit: "ml",   purchaseUnit: "4-pack",  purchaseSize: 800,  par: 5,  costPerPurchaseUnit: 12 },
-];
-
-const SEED_RECIPES = [
-  // ── Cocktails ──
-  { id: 1,  name: "Smoke & Silk",       salePrice: 25,
-    ingredients: [{ ingredientId: 1, quantity: 60 }, { ingredientId: 27, quantity: 15 }, { ingredientId: 37, quantity: 2.4 }] },
-  { id: 2,  name: "Fifth Avenue",       salePrice: 25,
-    ingredients: [{ ingredientId: 2, quantity: 45 }, { ingredientId: 12, quantity: 15 }, { ingredientId: 38, quantity: 1.8 }] },
-  { id: 3,  name: "Crimson Bloom",      salePrice: 22,
-    ingredients: [{ ingredientId: 3, quantity: 20 }, { ingredientId: 24, quantity: 20 }, { ingredientId: 13, quantity: 20 }] },
-  { id: 4,  name: "Velour Drift",       salePrice: 22,
-    ingredients: [{ ingredientId: 4, quantity: 40 }, { ingredientId: 14, quantity: 20 }, { ingredientId: 25, quantity: 10 }] },
-  { id: 5,  name: "Kisetsu",            salePrice: 22,
-    ingredients: [{ ingredientId: 3, quantity: 40 }, { ingredientId: 16, quantity: 20 }, { ingredientId: 30, quantity: 25 }, { ingredientId: 26, quantity: 10 }] },
-  { id: 6,  name: "Golden Pulse",       salePrice: 22,
-    ingredients: [{ ingredientId: 4, quantity: 30 }, { ingredientId: 17, quantity: 30 }, { ingredientId: 32, quantity: 60 }, { ingredientId: 33, quantity: 30 }, { ingredientId: 36, quantity: 30 }] },
-  { id: 7,  name: "Jasmine Mist",       salePrice: 23,
-    ingredients: [{ ingredientId: 8, quantity: 45 }, { ingredientId: 17, quantity: 15 }, { ingredientId: 23, quantity: 5 }] },
-  { id: 8,  name: "Yuzu High",          salePrice: 22,
-    ingredients: [{ ingredientId: 5, quantity: 60 }, { ingredientId: 64, quantity: 90 }] },
-  { id: 9,  name: "Neon Collins",       salePrice: 22,
-    ingredients: [{ ingredientId: 10, quantity: 30 }] },
-  { id: 10, name: "First Light",        salePrice: 23,
-    ingredients: [{ ingredientId: 6, quantity: 30 }, { ingredientId: 21, quantity: 30 }, { ingredientId: 31, quantity: 30 }, { ingredientId: 28, quantity: 10 }, { ingredientId: 22, quantity: 5 }] },
-  { id: 11, name: "Hikari Muse",        salePrice: 22,
-    ingredients: [{ ingredientId: 9, quantity: 45 }, { ingredientId: 18, quantity: 15 }, { ingredientId: 26, quantity: 20 }, { ingredientId: 30, quantity: 25 }, { ingredientId: 36, quantity: 30 }] },
-  { id: 12, name: "Kin Bite",           salePrice: 22,
-    ingredients: [{ ingredientId: 8, quantity: 30 }, { ingredientId: 19, quantity: 15 }, { ingredientId: 20, quantity: 15 }, { ingredientId: 30, quantity: 30 }, { ingredientId: 29, quantity: 30 }, { ingredientId: 36, quantity: 30 }] },
-  { id: 13, name: "Blush Rose",         salePrice: 20,
-    ingredients: [{ ingredientId: 15, quantity: 30 }, { ingredientId: 30, quantity: 20 }, { ingredientId: 34, quantity: 40 }, { ingredientId: 45, quantity: 90 }] },
-  { id: 14, name: "Ember Flame",        salePrice: 22,
-    ingredients: [{ ingredientId: 7, quantity: 30 }, { ingredientId: 22, quantity: 30 }, { ingredientId: 31, quantity: 30 }, { ingredientId: 35, quantity: 30 }, { ingredientId: 28, quantity: 10 }, { ingredientId: 11, quantity: 15 }] },
-  { id: 15, name: "Japanese Highball",  salePrice: 20,
-    ingredients: [{ ingredientId: 5, quantity: 60 }] },
-  // ── Beer ──
-  { id: 16, name: "Corona",                         salePrice: 12, ingredients: [{ ingredientId: 39, quantity: 1 }] },
-  { id: 17, name: "Great Northern Original",        salePrice: 10, ingredients: [{ ingredientId: 40, quantity: 1 }] },
-  { id: 18, name: "Great Northern Supercrisp",      salePrice: 10, ingredients: [{ ingredientId: 41, quantity: 1 }] },
-  { id: 19, name: "Heineken Zero",                  salePrice: 9,  ingredients: [{ ingredientId: 42, quantity: 1 }] },
-  { id: 20, name: "James Squire Orchard Crush",     salePrice: 12, ingredients: [{ ingredientId: 43, quantity: 1 }] },
-  // ── Sparkling & Champagne (120ml) ──
-  { id: 21, name: "Clover Hill NV 120ml",           salePrice: 14, ingredients: [{ ingredientId: 44, quantity: 120 }] },
-  { id: 22, name: "Bianca Vigna Prosecco 120ml",    salePrice: 14, ingredients: [{ ingredientId: 45, quantity: 120 }] },
-  { id: 23, name: "Taittinger 120ml",               salePrice: 31, ingredients: [{ ingredientId: 46, quantity: 120 }] },
-  // ── Aromatic & Lighter White (150ml / 250ml) ──
-  { id: 24, name: "Fiore Moscato 150ml",            salePrice: 12, ingredients: [{ ingredientId: 47, quantity: 150 }] },
-  { id: 25, name: "Fiore Moscato 250ml",            salePrice: 18, ingredients: [{ ingredientId: 47, quantity: 250 }] },
-  { id: 26, name: "Hay Shed Hill Sauv Sem 150ml",   salePrice: 12, ingredients: [{ ingredientId: 48, quantity: 150 }] },
-  { id: 27, name: "Hay Shed Hill Sauv Sem 250ml",   salePrice: 18, ingredients: [{ ingredientId: 48, quantity: 250 }] },
-  { id: 28, name: "Hesketh Sauvignon Blanc 150ml",  salePrice: 12, ingredients: [{ ingredientId: 49, quantity: 150 }] },
-  { id: 29, name: "Hesketh Sauvignon Blanc 250ml",  salePrice: 18, ingredients: [{ ingredientId: 49, quantity: 250 }] },
-  { id: 30, name: "Josef Chromy Riesling 150ml",    salePrice: 16, ingredients: [{ ingredientId: 50, quantity: 150 }] },
-  { id: 31, name: "Josef Chromy Riesling 250ml",    salePrice: 26, ingredients: [{ ingredientId: 50, quantity: 250 }] },
-  { id: 32, name: "Rockburn Pinot Gris 150ml",      salePrice: 15, ingredients: [{ ingredientId: 51, quantity: 150 }] },
-  { id: 33, name: "Rockburn Pinot Gris 250ml",      salePrice: 25, ingredients: [{ ingredientId: 51, quantity: 250 }] },
-  // ── Full Bodied White & Rosé (150ml / 250ml) ──
-  { id: 34, name: "Haha Chardonnay 150ml",          salePrice: 13, ingredients: [{ ingredientId: 52, quantity: 150 }] },
-  { id: 35, name: "Haha Chardonnay 250ml",          salePrice: 21, ingredients: [{ ingredientId: 52, quantity: 250 }] },
-  { id: 36, name: "Dalrymple Chardonnay 150ml",     salePrice: 21, ingredients: [{ ingredientId: 53, quantity: 150 }] },
-  { id: 37, name: "Dalrymple Chardonnay 250ml",     salePrice: 36, ingredients: [{ ingredientId: 53, quantity: 250 }] },
-  { id: 38, name: "Maison Saint AIX Rosé 150ml",    salePrice: 18, ingredients: [{ ingredientId: 54, quantity: 150 }] },
-  { id: 39, name: "Maison Saint AIX Rosé 250ml",    salePrice: 29, ingredients: [{ ingredientId: 54, quantity: 250 }] },
-  { id: 40, name: "Santa Cristina Rosé 150ml",      salePrice: 13, ingredients: [{ ingredientId: 55, quantity: 150 }] },
-  { id: 41, name: "Santa Cristina Rosé 250ml",      salePrice: 21, ingredients: [{ ingredientId: 55, quantity: 250 }] },
-  // ── Lighter & Medium Red (150ml / 250ml) ──
-  { id: 42, name: "Fickle Mistress Pinot Noir 150ml",  salePrice: 13, ingredients: [{ ingredientId: 56, quantity: 150 }] },
-  { id: 43, name: "Fickle Mistress Pinot Noir 250ml",  salePrice: 21, ingredients: [{ ingredientId: 56, quantity: 250 }] },
-  { id: 44, name: "Torres Tempranillo 150ml",           salePrice: 15, ingredients: [{ ingredientId: 57, quantity: 150 }] },
-  { id: 45, name: "Torres Tempranillo 250ml",           salePrice: 24, ingredients: [{ ingredientId: 57, quantity: 250 }] },
-  { id: 46, name: "Domaine Beaurenard Grenache 150ml",  salePrice: 19, ingredients: [{ ingredientId: 58, quantity: 150 }] },
-  { id: 47, name: "Domaine Beaurenard Grenache 250ml",  salePrice: 31, ingredients: [{ ingredientId: 58, quantity: 250 }] },
-  // ── Full Bodied Red (150ml / 250ml) ──
-  { id: 48, name: "Little Berry Cabernet Sauv 150ml",   salePrice: 12, ingredients: [{ ingredientId: 59, quantity: 150 }] },
-  { id: 49, name: "Little Berry Cabernet Sauv 250ml",   salePrice: 18, ingredients: [{ ingredientId: 59, quantity: 250 }] },
-  { id: 50, name: "Langmeil Valley Floor Shiraz 150ml", salePrice: 19, ingredients: [{ ingredientId: 60, quantity: 150 }] },
-  { id: 51, name: "Langmeil Valley Floor Shiraz 250ml", salePrice: 28, ingredients: [{ ingredientId: 60, quantity: 250 }] },
-  { id: 52, name: "Leeuwin Art Series Shiraz 150ml",    salePrice: 22, ingredients: [{ ingredientId: 61, quantity: 150 }] },
-  { id: 53, name: "Leeuwin Art Series Shiraz 250ml",    salePrice: 36, ingredients: [{ ingredientId: 61, quantity: 250 }] },
-  { id: 54, name: "Penfolds Bin 389 150ml",             salePrice: 61, ingredients: [{ ingredientId: 62, quantity: 150 }] },
-  { id: 55, name: "Penfolds Bin 389 250ml",             salePrice: 101,ingredients: [{ ingredientId: 62, quantity: 250 }] },
-];
-
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-const RECIPE_UNITS   = ["ml", "g", "unit", "dash", "tsp", "tbsp"];
-const PURCHASE_UNITS = ["bottle", "litre", "kg", "kg bag", "2kg bag", "can", "keg", "bag", "each", "case", "4-pack", "crate", "punnet", "bunch", "jar"];
-
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-const num     = (v) => parseFloat(v) || 0;
-const fmtB    = (unit, qty) => {
-  qty = Math.round(num(qty) * 10) / 10;
-  if (unit === "ml" && Math.abs(qty) >= 1000) return `${(qty/1000).toFixed(2)}L`;
-  if (unit === "g"  && Math.abs(qty) >= 1000) return `${(qty/1000).toFixed(2)}kg`;
-  return `${qty}${unit}`;
-};
-const fmtP    = (unit, qty, dp=2) => `${num(qty).toFixed(dp)} ${unit}`;
-const toBase  = (ing, v) => num(v) * num(ing?.purchaseSize);
-const toPurch = (ing, v) => num(ing?.purchaseSize) > 0 ? num(v) / num(ing.purchaseSize) : 0;
-const dateStr = () => new Date().toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
-const fmtAUD  = (v) => `$${num(v).toFixed(2)}`; // AUD currency formatter
-
-// Cost per single recipe unit (ml, g, unit) for an ingredient
-const costPerUnit = (ing) => {
-  if (!ing?.costPerPurchaseUnit || !ing?.purchaseSize) return 0;
-  return num(ing.costPerPurchaseUnit) / num(ing.purchaseSize);
-};
-
-// Pour cost of a recipe — sum of (quantity × costPerUnit) for each ingredient
-const calcPourCost = (recipe, ingredientsMap) => {
-  if (!recipe?.ingredients) return 0;
-  return recipe.ingredients.reduce((total, {ingredientId, quantity}) => {
-    const ing = ingredientsMap[ingredientId];
-    return total + (quantity * costPerUnit(ing));
-  }, 0);
-};
-
-// Beer is ordered by case but COUNTED as individual units.
-// countUnit returns the unit used for stock entry inputs.
-// countSize returns how many countUnits are in one purchaseUnit.
-const countUnit = (ing) => ing.recipeUnit === "unit" && ing.purchaseUnit === "case" ? "bottle" : ing.purchaseUnit;
-const countSize = (ing) => ing.recipeUnit === "unit" && ing.purchaseUnit === "case" ? 1 : ing.purchaseSize;
-// Convert a count-unit value to base units
-const countToBase = (ing, v) => num(v) * countSize(ing);
-// Convert base units to count units (for display)
-const baseToCount = (ing, v) => countSize(ing) > 0 ? num(v) / countSize(ing) : 0;
-// Convert count units to purchase units (for order report)
-const countToPurch = (ing, v) => {
-  const baseVal = countToBase(ing, v);
-  return toPurch(ing, baseVal);
-};
-
-// ─── STORAGE ──────────────────────────────────────────────────────────────────
-const STOR_LIB = "bb-lib-v4", STOR_PERIOD = "bb-period-v4";
-async function sGet(key) {
-  try { const r = await window.storage.get(key); return r?.value ? JSON.parse(r.value) : null; } catch { return null; }
-}
-async function sSet(key, val) {
-  try { await window.storage.set(key, JSON.stringify(val)); } catch {}
-}
-
-// ─── CATEGORY FILTER BAR (module level) ───────────────────────────────────────
-function CategoryFilter({ selected, onChange, counts }) {
-  const all = ["All", ...CATEGORIES];
+const StatusPill = ({ status }) => {
+  const map = {
+    "Above Par":    { bg: "#dcfce7", text: "#166534", border: "#86efac" },
+    "At Par":       { bg: "#dbeafe", text: "#1e40af", border: "#93c5fd" },
+    "Order Needed": { bg: "#fef9c3", text: "#854d0e", border: "#fde047" },
+    "Critical":     { bg: "#fee2e2", text: "#991b1b", border: "#fca5a5" },
+  }
+  const s = map[status] || map["Above Par"]
   return (
-    <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4, marginBottom:16, scrollbarWidth:"none" }}>
-      <style>{`.cf::-webkit-scrollbar{display:none}`}</style>
-      {all.map(cat => {
-        const count = cat === "All" ? (counts ? Object.values(counts).reduce((a,b)=>a+b,0) : null) : (counts?.[cat] || 0);
-        const active = selected === cat;
-        const cc = cat === "All" ? null : catColor(cat);
-        return (
-          <button key={cat} onClick={() => onChange(cat)} style={{
-            background: active ? (cc ? cc.dot : "var(--accent)") : (cc ? cc.bg : "#F0EDE8"),
-            color: active ? "#fff" : (cc ? cc.text : "var(--text-mid)"),
-            border: `1.5px solid ${active ? (cc ? cc.dot : "var(--accent)") : (cc ? cc.border : "var(--border)")}`,
-            fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".06em",
-            padding: "7px 13px", borderRadius: 20, cursor: "pointer",
-            whiteSpace: "nowrap", flexShrink: 0, transition: "all .15s",
-            fontWeight: active ? 500 : 400,
-          }}>
-            {cat}{count !== null && count !== undefined ? ` ${count}` : ""}
-          </button>
-        );
-      })}
-    </div>
-  );
+    <span style={{ display:"inline-block", padding:"1px 7px", borderRadius:10, fontSize:11, fontWeight:600, background:s.bg, color:s.text, border:`1px solid ${s.border}` }}>
+      {status}
+    </span>
+  )
 }
 
-// ─── SEARCH BAR (module level) ─────────────────────────────────────────────────
-function SearchBar({ value, onChange, placeholder }) {
-  return (
-    <div style={{ position:"relative", marginBottom:10 }}>
-      <svg style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"var(--text-dim)", pointerEvents:"none" }}
-        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input
-        type="text" placeholder={placeholder || "Search..."} value={value}
-        onChange={e => onChange(e.target.value)}
-        autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
-        style={{
-          background:"var(--input-bg)", border:"1.5px solid var(--border)",
-          color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:13,
-          padding:"11px 12px 11px 36px", borderRadius:10, width:"100%", outline:"none",
-          WebkitAppearance:"none",
-        }}
-        onFocus={e => e.target.style.borderColor="var(--gold)"}
-        onBlur={e  => e.target.style.borderColor="var(--border)"}
-      />
-      {value && (
-        <button onClick={() => onChange("")} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:"var(--text-dim)", cursor:"pointer", fontSize:16, lineHeight:1 }}>×</button>
-      )}
-    </div>
-  );
-}
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
-// ─── NUM INPUT (module level) ─────────────────────────────────────────────────
-function NumInput({ value, onChange, placeholder, suffix, sublabel }) {
-  return (
-    <div style={{ position:"relative" }}>
-      <input
-        type="text" inputMode="decimal" pattern="[0-9]*\.?[0-9]*"
-        placeholder={placeholder || "0"} value={value}
-        onChange={e => onChange(e.target.value)}
-        autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
-        style={{
-          background:"var(--input-bg)", border:"1.5px solid var(--border)",
-          color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15,
-          padding:"13px 16px", paddingRight: suffix ? 80 : 16,
-          borderRadius:10, width:"100%", outline:"none", transition:"border-color .15s",
-          WebkitAppearance:"none", boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
-        }}
-        onFocus={e => e.target.style.borderColor="var(--accent)"}
-        onBlur={e  => e.target.style.borderColor="var(--border)"}
-      />
-      {suffix && <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-dim)", pointerEvents:"none", fontFamily:"var(--font-mono)" }}>{suffix}</span>}
-      {sublabel && <div style={{ fontSize:11, color:"var(--text-dim)", marginTop:4, paddingLeft:2 }}>{sublabel}</div>}
-    </div>
-  );
-}
+export default function App() {
+  const [tab, setTab] = useState("dashboard")
+  const [lib, setLib] = useState(null)
+  const [period, setPeriod] = useState(null)
+  const [weekSales, setWeekSales] = useState({})
+  const saveTimer = useRef(null)
 
-// ─── TEXT INPUT (module level) ─────────────────────────────────────────────────
-function TextInput({ value, onChange, placeholder }) {
-  return (
-    <input type="text" placeholder={placeholder} value={value}
-      onChange={e => onChange(e.target.value)}
-      autoComplete="off" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-      style={{ background:"var(--input-bg)", border:"1.5px solid var(--border)", color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15, padding:"13px 16px", borderRadius:10, width:"100%", outline:"none", WebkitAppearance:"none", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}
-      onFocus={e => e.target.style.borderColor="var(--accent)"}
-      onBlur={e  => e.target.style.borderColor="var(--border)"}
-    />
-  );
-}
-
-// ─── SELECT (module level) ─────────────────────────────────────────────────────
-function Select({ value, onChange, children }) {
-  return (
-    <select value={value} onChange={e => onChange(e.target.value)} style={{ background:"var(--input-bg)", border:"1.5px solid var(--border)", color:"var(--text)", fontFamily:"var(--font-mono)", fontSize:15, padding:"13px 16px", borderRadius:10, width:"100%", outline:"none", appearance:"none", WebkitAppearance:"none", cursor:"pointer", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}
-      onFocus={e => e.target.style.borderColor="var(--accent)"}
-      onBlur={e  => e.target.style.borderColor="var(--border)"}
-    >{children}</select>
-  );
-}
-
-// ─── ICONS ────────────────────────────────────────────────────────────────────
-const Icon = {
-  home:     () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
-  stock:    () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
-  order:    () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.98-1.67l1.62-9.33H6"/></svg>,
-  variance: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-  setup:    () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>,
-  trash:    () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
-  alert:    () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-  check:    () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
-};
-
-// ─── APP ──────────────────────────────────────────────────────────────────────
-export default function BarBuddy() {
-  const [tab,      setTab]      = useState("home");
-  const [subTab,   setSubTab]   = useState("ingredients"); // Setup sub-tabs
-  const [stockTab, setStockTab] = useState("opening");     // Stock sub-tabs: opening | deliveries | closing
-  const [varTab,   setVarTab]   = useState("sales");       // Variance sub-tabs: sales | results
-  const [loaded, setLoaded] = useState(false);
-  const [toast,  setToast]  = useState("");
-  const [modal,  setModal]  = useState(null);
-
-  // Library
-  const [ingredients, setIngredients] = useState(SEED_INGREDIENTS);
-  const [recipes,     setRecipes]     = useState(SEED_RECIPES);
-
-  // Period
-  const [openingStock, setOpeningStock] = useState({});
-  const [deliveries,   setDeliveries]   = useState({});
-  const [monthlySales, setMonthlySales] = useState({});
-  const [weeklyLog,    setWeeklyLog]    = useState([]);
-  const [closingStock, setClosingStock] = useState({});
-  const [monthStart,   setMonthStart]   = useState("");
-  const [weekNum,      setWeekNum]      = useState(1);
-
-  // Transient
-  const [weekSales, setWeekSales] = useState({});
-  const [newIng,    setNewIng]    = useState({ name:"", category:"Spirits", recipeUnit:"ml", purchaseUnit:"bottle", purchaseSize:"", par:"", costPerPurchaseUnit:"" });
-  const [newRec,    setNewRec]    = useState({ name:"", salePrice:"", ings:[] });
-  const [newRI,     setNewRI]     = useState({ ingredientId:"", quantity:"" });
-  const [csvError,  setCsvError]  = useState("");
-
-  // Edit state
-  const [editIngId,  setEditIngId]  = useState(null); // id of ingredient being edited
-  const [editIng,    setEditIng]    = useState({});    // edit form values
-  const [editRecId,  setEditRecId]  = useState(null); // id of recipe being edited
-
-  // Filter / search state — one set per screen
-  // Stock page: stockCat + stockSearch shared across Opening Stock & Deliveries sub-tabs
-  const [stockCat,    setStockCat]    = useState("All");
-  const [stockSearch, setStockSearch] = useState("");
-  const [orderCat,    setOrderCat]    = useState("All");
-  const [orderSearch, setOrderSearch] = useState("");
-  const [varCat,      setVarCat]      = useState("All");
-  const [varSearch,   setVarSearch]   = useState("");
-  const [libCat,      setLibCat]      = useState("All");
-  const [libSearch,   setLibSearch]   = useState("");
-  const [recSearch,   setRecSearch]   = useState(""); // recipe builder ingredient search
-  const [recLibSearch, setRecLibSearch] = useState(""); // recipe library search
-  const [salesSearch,  setSalesSearch]  = useState(""); // sales entry search
-  const [orderShowAll, setOrderShowAll] = useState(false); // order report toggle
-
-  const saveTimer = useRef(null);
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); };
-
-  // Scroll to top whenever main tab changes
+  // Load from storage
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [tab]);
-
-  // ── LOAD ──────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      const lib = await sGet(STOR_LIB);
-      if (lib?.ingredients) setIngredients(lib.ingredients);
-      if (lib?.recipes)     setRecipes(lib.recipes);
-      const p = await sGet(STOR_PERIOD);
-      if (p) {
-        if (p.openingStock) setOpeningStock(p.openingStock);
-        if (p.deliveries)   setDeliveries(p.deliveries);
-        if (p.monthlySales) setMonthlySales(p.monthlySales);
-        if (p.weeklyLog)    setWeeklyLog(p.weeklyLog);
-        if (p.closingStock) setClosingStock(p.closingStock);
-        if (p.monthStart)   setMonthStart(p.monthStart);
-        if (p.weekNum)      setWeekNum(p.weekNum);
+    const loadData = async () => {
+      try {
+        const libRes = await window.storage.get("bb-v1-lib")
+        const perRes = await window.storage.get("bb-v1-period")
+        setLib(libRes ? JSON.parse(libRes.value) : { ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES })
+        setPeriod(perRes ? JSON.parse(perRes.value) : defaultPeriod())
+      } catch {
+        setLib({ ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES })
+        setPeriod(defaultPeriod())
       }
-      setLoaded(true);
-    })();
-  }, []);
+    }
+    loadData()
+  }, [])
 
-  const saveLib    = (ings, recs) => sSet(STOR_LIB, { ingredients:ings, recipes:recs });
-  const savePeriod = (snap) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => sSet(STOR_PERIOD, snap), 600);
-  };
-  const periodSnap = (o={}) => ({ openingStock, deliveries, monthlySales, weeklyLog, closingStock, monthStart, weekNum, ...o });
+  const defaultPeriod = () => ({
+    openingStock: {}, deliveries: {}, closingStock: {},
+    monthlySales: {}, weeklyLog: [],
+    monthStart: new Date().toISOString().slice(0, 10),
+    weekNum: 1,
+  })
 
-  // ── FILTER HELPER ─────────────────────────────────────────────────────────
-  const filterIngs = (ings, cat, search) =>
-    ings.filter(i =>
-      (cat === "All" || i.category === cat) &&
-      (search === "" || i.name.toLowerCase().includes(search.toLowerCase()))
-    );
+  // Debounced save
+  const saveData = useCallback((newLib, newPeriod) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      try {
+        if (newLib) await window.storage.set("bb-v1-lib", JSON.stringify(newLib))
+        if (newPeriod) await window.storage.set("bb-v1-period", JSON.stringify(newPeriod))
+      } catch {}
+    }, 600)
+  }, [])
 
-  // Category counts for a given ingredient list
-  const catCounts = (ings) => {
-    const counts = {};
-    ings.forEach(i => { counts[i.category] = (counts[i.category] || 0) + 1; });
-    return counts;
-  };
+  const updatePeriod = useCallback((updater) => {
+    setPeriod(prev => {
+      const next = typeof updater === "function" ? updater(prev) : { ...prev, ...updater }
+      saveData(null, next)
+      return next
+    })
+  }, [saveData])
 
-  // ── MATHS ─────────────────────────────────────────────────────────────────
-  const calcUsage = useCallback(() => {
-    const u = {}; ingredients.forEach(i => { u[i.id]=0; });
-    Object.entries(monthlySales).forEach(([rid,qty]) => {
-      const r = recipes.find(x => x.id===parseInt(rid));
-      if (!r||!qty) return;
-      r.ingredients.forEach(({ingredientId,quantity}) => { u[ingredientId]=(u[ingredientId]||0)+quantity*num(qty); });
-    });
-    return u;
-  }, [monthlySales, recipes, ingredients]);
+  const updateLib = useCallback((updater) => {
+    setLib(prev => {
+      const next = typeof updater === "function" ? updater(prev) : { ...prev, ...updater }
+      saveData(next, null)
+      return next
+    })
+  }, [saveData])
 
-  const calcTheoClose = useCallback(() => {
-    const u = calcUsage(); const res = {};
-    ingredients.forEach(ing => {
-      res[ing.id] = countToBase(ing, openingStock[ing.id])
-                  + countToBase(ing, deliveries[ing.id])
-                  - (u[ing.id]||0);
-    });
-    return res;
-  }, [openingStock, deliveries, calcUsage, ingredients]);
+  useEffect(() => { window.scrollTo(0, 0) }, [tab])
 
-  // ── ACTIONS ───────────────────────────────────────────────────────────────
+  if (!lib || !period) return <div style={{ padding: 40, fontFamily: "Inter, sans-serif", color: "#374151" }}>Loading Bar Buddy…</div>
+
+  const ingMap = Object.fromEntries(lib.ingredients.map(i => [i.id, i]))
+  const recipeMap = Object.fromEntries(lib.recipes.map(r => [r.id, r]))
+  const usage = calcUsage(period.monthlySales, lib.recipes, ingMap)
+  const theoClose = calcTheoClose(lib.ingredients, period.openingStock, period.deliveries, usage)
+
+  const getStatus = (ing) => {
+    const rem = toPurch(ing, theoClose[ing.id] || 0)
+    if (rem >= ing.par) return "Above Par"
+    if (rem >= ing.par * 0.8) return "At Par"
+    if (rem > 0) return "Order Needed"
+    return "Critical"
+  }
+
   const logWeek = () => {
-    const label = `Week ${weekNum} — ${dateStr()}`;
-    const updSales = {...monthlySales};
-    Object.entries(weekSales).forEach(([rid,qty]) => {
-      if (!qty||num(qty)===0) return;
-      updSales[rid] = String(num(updSales[rid]||0)+num(qty));
-    });
-    const updLog = [...weeklyLog, {label, weekOf:dateStr(), sales:{...weekSales}}];
-    const newWk = weekNum+1;
-    setMonthlySales(updSales); setWeeklyLog(updLog); setWeekNum(newWk); setWeekSales({});
-    setModal(null);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    sSet(STOR_PERIOD, periodSnap({monthlySales:updSales, weeklyLog:updLog, weekNum:newWk}));
-    showToast(`${label} logged`);
-  };
+    if (Object.keys(weekSales).length === 0) return
+    const now = new Date()
+    const entry = {
+      label: `Week ${period.weekNum}`,
+      weekOf: now.toISOString().slice(0, 10),
+      sales: { ...weekSales },
+    }
+    updatePeriod(prev => {
+      const newMonthlySales = { ...prev.monthlySales }
+      Object.entries(weekSales).forEach(([rid, qty]) => {
+        newMonthlySales[rid] = (newMonthlySales[rid] || 0) + qty
+      })
+      return { ...prev, monthlySales: newMonthlySales, weeklyLog: [...prev.weeklyLog, entry], weekNum: prev.weekNum + 1 }
+    })
+    setWeekSales({})
+  }
 
-  const doNewMonth = () => {
-    const tc = calcTheoClose(); const newOp = {};
-    ingredients.forEach(ing => {
-      const has = closingStock[String(ing.id)]!==undefined && closingStock[String(ing.id)]!=="";
-      if (has) {
-        // Closing stock entered in countUnits — store as countUnits for next opening
-        newOp[String(ing.id)] = String(num(closingStock[String(ing.id)]));
+  const newMonth = () => {
+    const newOpening = {}
+    lib.ingredients.forEach(ing => {
+      if (period.closingStock[ing.id] !== undefined) {
+        newOpening[ing.id] = period.closingStock[ing.id]
       } else {
-        // Fall back to theoretical — convert base → countUnits
-        newOp[String(ing.id)] = String(Math.max(0, baseToCount(ing, tc[ing.id]??0)));
+        newOpening[ing.id] = baseToCount(ing, theoClose[ing.id] || 0)
       }
-    });
-    const ns = dateStr();
-    setOpeningStock(newOp); setDeliveries({}); setMonthlySales({}); setWeeklyLog([]);
-    setClosingStock({}); setWeekSales({}); setWeekNum(1); setMonthStart(ns);
-    setModal(null);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    sSet(STOR_PERIOD, {openingStock:newOp,deliveries:{},monthlySales:{},weeklyLog:[],closingStock:{},monthStart:ns,weekNum:1});
-    showToast("New month started");
-  };
+    })
+    updatePeriod({
+      openingStock: newOpening,
+      deliveries: {}, closingStock: {},
+      monthlySales: {}, weeklyLog: [],
+      monthStart: new Date().toISOString().slice(0, 10),
+      weekNum: 1,
+    })
+    setWeekSales({})
+  }
 
-  const doReset = async () => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    setIngredients(SEED_INGREDIENTS); setRecipes(SEED_RECIPES);
-    setOpeningStock({}); setDeliveries({}); setMonthlySales({}); setWeeklyLog([]);
-    setClosingStock({}); setWeekSales({}); setWeekNum(1); setMonthStart("");
-    await sSet(STOR_LIB,    {ingredients:SEED_INGREDIENTS,recipes:SEED_RECIPES});
-    await sSet(STOR_PERIOD, {openingStock:{},deliveries:{},monthlySales:{},weeklyLog:[],closingStock:{},monthStart:"",weekNum:1});
-    setModal(null); showToast("Reset to demo data");
-  };
+  const hasPendingWeek = Object.keys(weekSales).some(k => weekSales[k] > 0)
 
-  const handleCSV = (e) => {
-    const file=e.target.files[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=(ev)=>{
-      const lines=ev.target.result.trim().split("\n"); const upd={...weekSales}; const errs=[];
-      lines.forEach((line,i)=>{
-        if(i===0&&line.toLowerCase().includes("drink")) return;
-        const [name,qty]=line.split(",").map(s=>s.trim());
-        if(!name||!qty) return;
-        const r=recipes.find(x=>x.name.toLowerCase()===name.toLowerCase());
-        if(!r){errs.push(name);return;}
-        upd[r.id]=String(num(upd[r.id]||0)+num(qty));
-      });
-      setWeekSales(upd);
-      errs.length ? setCsvError(`Unmatched: ${errs.join(", ")}`) : (setCsvError(""),showToast("CSV loaded"));
-    };
-    reader.readAsText(file);
-  };
+  const monthName = new Date(period.monthStart).toLocaleString("default", { month: "long", year: "numeric" })
 
-  // ── DERIVED ───────────────────────────────────────────────────────────────
-  const usage        = calcUsage();
-  const theoClose    = calcTheoClose();
-  const totalMonthly = Object.values(monthlySales).reduce((a,b)=>a+num(b),0);
-  const weekTotal    = Object.values(weekSales).reduce((a,b)=>a+num(b),0);
-  const orderSugs    = ingredients.map(ing=>({
-    ...ing,
-    remP: toPurch(ing, theoClose[ing.id]??0),
-    toOrder: Math.max(0, Math.ceil(ing.par - toPurch(ing, theoClose[ing.id]??0))),
-  })).sort((a,b)=>b.toOrder - a.toOrder); // urgency sort — most needed first
-  const orderItems   = orderSugs.filter(i=>i.toOrder>0);
-  const topUsed      = [...ingredients].filter(i=>(usage[i.id]||0)>0)
-    .sort((a,b)=>toPurch(b,usage[b.id]||0)-toPurch(a,usage[a.id]||0)).slice(0,4);
-
-  if (!loaded) return (
-    <div style={{minHeight:"100vh",background:"#F5F3EF",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
-      <div style={{fontFamily:"'Cormorant Garant',serif",fontSize:32,fontWeight:700,color:"#2C5282",letterSpacing:".02em"}}>Bar Buddy</div>
-      <style>{`@keyframes pulse{0%,100%{opacity:.2}50%{opacity:1}}`}</style>
-      <div style={{display:"flex",gap:6}}>
-        {[0,1,2].map(i=><div key={i} style={{width:6,height:6,background:"#2C5282",borderRadius:"50%",animation:`pulse 1s ease-in-out ${i*0.2}s infinite`}}/>)}
-      </div>
-    </div>
-  );
-
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:wght@400;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
-    :root {
-      --accent:#2C5282; --accent-light:#EBF4FF; --accent-mid:#3B82F6;
-      --gold:#B7620A; --gold-bg:#FEF3E2; --gold-dim:#F59E0B;
-      --green:#15803D; --green-bg:#DCFCE7;
-      --red:#DC2626;   --red-bg:#FEE2E2;
-      --blue:#1D4ED8;  --blue-bg:#DBEAFE;
-      --bg:#F0EDE8; --surface:#FFFFFF; --surface2:#F5F2EE;
-      --border:#E5E0D8; --border-light:#D1CBC0;
-      --text:#1C1917; --text-mid:#6B6460; --text-dim:#A8A29E;
-      --input-bg:#FFFFFF;
-      --shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-      --font-serif:'Cormorant Garant',Georgia,serif;
-      --font-mono:'IBM Plex Mono','Courier New',monospace;
-      --radius:14px; --radius-sm:10px;
-      --sidebar-w:240px;
-    }
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:var(--bg);min-height:100vh;}
-    ::-webkit-scrollbar{width:4px}
-    ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:2px}
-
-    /* ── Sidebar ── */
-    .sidebar{
-      position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);
-      background:var(--surface);border-right:1px solid var(--border);
-      display:flex;flex-direction:column;z-index:50;
-      box-shadow:2px 0 12px rgba(0,0,0,0.04);
-    }
-    .sidebar-logo{padding:28px 24px 20px;}
-    .sidebar-nav{flex:1;padding:8px 12px;overflow-y:auto;}
-    .sidebar-footer{padding:16px 12px;border-top:1px solid var(--border);}
-
-    .nav-item{
-      display:flex;align-items:center;gap:12px;width:100%;
-      padding:11px 14px;border-radius:10px;border:none;
-      background:none;color:var(--text-mid);cursor:pointer;
-      font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;
-      text-transform:uppercase;text-align:left;
-      transition:all .15s;margin-bottom:2px;
-    }
-    .nav-item:hover{background:var(--surface2);color:var(--text);}
-    .nav-item.active{background:var(--accent-light);color:var(--accent);font-weight:500;}
-    .nav-item svg{flex-shrink:0;opacity:.7;}
-    .nav-item.active svg{opacity:1;}
-
-    /* ── Main content ── */
-    .main{margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column;}
-    .page{padding:32px 40px;max-width:960px;width:100%;}
-
-    /* ── Cards ── */
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
-    .card+.card{margin-top:12px;}
-
-    .sect{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;display:block;}
-    .row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);}
-    .row:last-child{border-bottom:none;}.row:first-child{padding-top:0;}
-
-    /* ── Tags ── */
-    .tag  {display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);color:var(--gold);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #F59E0B40;}
-    .tag-g{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);color:var(--green);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #16A34A40;}
-    .tag-r{display:inline-flex;align-items:center;gap:4px;background:var(--red-bg);color:var(--red);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #DC262640;}
-    .tag-b{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg);color:var(--blue);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid #1D4ED840;}
-    .tag-d{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);color:var(--text-dim);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
-
-    /* ── Buttons ── */
-    .btn-primary{background:var(--accent);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:12px 20px;border-radius:var(--radius-sm);border:none;cursor:pointer;width:100%;transition:background .15s;box-shadow:0 2px 8px rgba(44,82,130,0.25);}
-    .btn-primary:hover{background:#1E3A5F;}
-    .btn-secondary{background:transparent;color:var(--text);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:11px 20px;border-radius:var(--radius-sm);border:1.5px solid var(--border-light);cursor:pointer;transition:all .15s;width:100%;}
-    .btn-secondary:hover{background:var(--surface2);border-color:var(--text-dim);}
-    .btn-blue{background:var(--accent-light);color:var(--accent);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:11px 20px;border-radius:var(--radius-sm);border:1.5px solid #BFD7F5;cursor:pointer;transition:all .15s;font-weight:500;}
-    .btn-blue:hover{background:#DBEAFE;}
-    .btn-ghost{background:transparent;border:none;color:var(--red);font-family:var(--font-mono);font-size:11px;cursor:pointer;padding:8px 4px;opacity:.7;}
-    .btn-ghost:hover{opacity:1;}
-    .btn-icon{background:var(--surface2);border:1px solid var(--border);color:var(--text-mid);border-radius:8px;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
-    .btn-icon:hover{background:var(--surface);border-color:var(--border-light);color:var(--text);box-shadow:var(--shadow-sm);}
-
-    /* ── Layout helpers ── */
-    .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-    .g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
-    .pill{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-dim);}
-    .hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
-
-    /* ── Modals (centered dialog on desktop) ── */
-    .overlay{position:fixed;inset:0;background:#00000055;z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
-    .sheet{background:var(--surface);border-radius:var(--radius);padding:32px;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,0.18);border:1px solid var(--border);}
-    .sheet-handle{display:none;}
-
-    /* ── Toast ── */
-    .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;font-family:var(--font-mono);font-size:12px;padding:12px 20px;border-radius:var(--radius-sm);z-index:200;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.2);}
-
-    /* ── Misc ── */
-    .cbar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-mid);margin-top:8px;line-height:1.6;}
-    .cbar b{color:var(--accent);font-weight:500;}
-    .alert-banner{background:linear-gradient(135deg,#FEF9E8,#FFF8F0);border:1px solid #F59E0B60;border-radius:var(--radius);padding:20px;}
-    .field{margin-bottom:14px;}
-    .field-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;display:block;}
-    .subtabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;}
-    .subtab{background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:10px 18px;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap;}
-    .subtab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
-    .wk{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;}
-    .no-results{text-align:center;padding:48px 16px;color:var(--text-dim);font-size:13px;}
-    .ing-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0 12px 12px;border-bottom:1px solid var(--border);border-left:3px solid transparent;margin-left:-4px;transition:background .1s;}
-    .ing-row:last-child{border-bottom:none;}
-    .ing-row:hover{background:var(--surface2);border-radius:0 8px 8px 0;}
-
-    /* ── Page header bar ── */
-    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);}
-    .page-title{font-family:var(--font-serif);font-size:28px;font-weight:700;color:var(--text);letter-spacing:-.01em;}
-
-    @keyframes savePop{0%{transform:scale(0.8);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
-    .save-icon{animation:savePop .3s ease;}
-  `;
-
-  const navItems = [
-    { id:"home",     label:"Home",    icon:Icon.home },
-    { id:"stock",    label:"Stock",   icon:Icon.stock },
-    { id:"orders",   label:"Orders",  icon:Icon.order },
-    { id:"variance", label:"Variance",icon:Icon.variance },
-    { id:"setup",    label:"Setup",   icon:Icon.setup },
-  ];
-
+  // ── Layout ──
   return (
-    <div style={{display:"flex",minHeight:"100vh",background:"var(--bg)",fontFamily:"var(--font-mono)",color:"var(--text)"}}>
-      <style>{css}</style>
-
-      {/* ══ SIDEBAR ══ */}
-      <aside className="sidebar">
-        {/* Logo */}
-        <div className="sidebar-logo">
-          <div style={{fontFamily:"var(--font-serif)",fontSize:24,fontWeight:700,color:"var(--accent)",letterSpacing:"-.01em",lineHeight:1}}>Bar Buddy</div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".14em",textTransform:"uppercase",marginTop:5}}>
-            {monthStart ? `${monthStart} · Wk ${weekNum}` : "Set opening stock to begin"}
-          </div>
+    <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', system-ui, sans-serif", fontSize: 13, color: "#111827", background: "#f9fafb" }}>
+      {/* Sidebar */}
+      <aside style={{ width: 220, minWidth: 220, background: "#fff", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", padding: "20px 0" }}>
+        <div style={{ padding: "0 20px 20px", borderBottom: "1px solid #e5e7eb" }}>
+          <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", letterSpacing: "-0.5px" }}>🍸 Bar Buddy</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>v2.0</div>
         </div>
-
-        {/* Nav items */}
-        <nav className="sidebar-nav">
-          {navItems.map(item=>(
-            <button key={item.id} className={`nav-item ${tab===item.id?"active":""}`}
-              onClick={()=>setTab(item.id)}>
-              <item.icon/>
-              <span>{item.label}</span>
-            </button>
+        <nav style={{ padding: "12px 0", flex: 1 }}>
+          {[
+            ["dashboard", "Dashboard"],
+            ["inventory", "Inventory"],
+            ["recipes", "Recipes"],
+            ["sales", "Sales"],
+            ["orders", "Orders"],
+          ].map(([id, label]) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              display: "block", width: "100%", textAlign: "left",
+              padding: "8px 20px", border: "none", cursor: "pointer",
+              background: tab === id ? "#f3f4f6" : "transparent",
+              color: tab === id ? "#111827" : "#6b7280",
+              fontWeight: tab === id ? 600 : 400,
+              fontSize: 13,
+              borderLeft: tab === id ? "3px solid #111827" : "3px solid transparent",
+            }}>{label}</button>
           ))}
         </nav>
-
-        {/* Footer actions */}
-        <div className="sidebar-footer">
-          {weekTotal>0&&(
-            <button onClick={()=>setModal("logWeek")} style={{
-              width:"100%",marginBottom:8,padding:"10px 14px",borderRadius:10,
-              border:"1.5px solid var(--gold-dim)",background:"var(--gold-bg)",
-              color:"var(--gold)",fontFamily:"var(--font-mono)",fontSize:11,
-              letterSpacing:".06em",cursor:"pointer",textAlign:"left",
-              display:"flex",alignItems:"center",justifyContent:"space-between"
-            }}>
-              <span>Log Week {weekNum}</span>
-              <span style={{fontWeight:600}}>{weekTotal} drinks</span>
+        <div style={{ padding: "12px 20px", borderTop: "1px solid #e5e7eb" }}>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>{monthName} · Week {period.weekNum}</div>
+          {hasPendingWeek && (
+            <button onClick={logWeek} style={{ display: "block", width: "100%", padding: "7px 0", marginBottom: 6, background: "#111827", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+              Log Week
             </button>
           )}
-          <button className="btn-blue" style={{width:"100%",marginBottom:12}} onClick={()=>setModal("newMonth")}>
+          <button onClick={newMonth} style={{ display: "block", width: "100%", padding: "7px 0", background: "transparent", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 5, cursor: "pointer", fontSize: 12 }}>
             New Month
           </button>
-          <div style={{display:"flex",alignItems:"center",gap:6,justifyContent:"center"}}>
-            <svg className="save-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <span style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",letterSpacing:".08em"}}>All changes saved</span>
-          </div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>● Saved</div>
         </div>
       </aside>
 
-      {/* ══ MAIN CONTENT ══ */}
-      <main className="main">
-
-      {/* ══ HOME ══ */}
-      {tab==="home" && (
-        <div className="page">
-          <div className="page-header">
-            <div className="page-title">Dashboard</div>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>{monthStart ? `Month from ${monthStart}` : "No month started"}</span>
-          </div>
-          {orderItems.length>0 ? (
-            <div className="alert-banner" style={{marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,color:"var(--gold)"}}>
-                  <Icon.alert/>
-                  <span style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:600}}>Order Needed</span>
-                </div>
-                <span className="tag">{orderItems.length} item{orderItems.length!==1?"s":""}</span>
-              </div>
-              {orderItems.slice(0,5).map(item=>(
-                <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
-                  <div>
-                    <span style={{fontSize:14}}>{item.name}</span>
-                    <CatTag category={item.category}/>
-                  </div>
-                  <span style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:600,color:"var(--gold)"}}>{item.toOrder} <span style={{fontSize:11,fontFamily:"var(--font-mono)",fontWeight:400}}>{item.purchaseUnit}{item.toOrder!==1?"s":""}</span></span>
-                </div>
-              ))}
-              {orderItems.length>5&&<div style={{fontSize:11,color:"var(--text-dim)",padding:"8px 0"}}>+{orderItems.length-5} more items...</div>}
-              <button className="btn-primary" style={{marginTop:14}} onClick={()=>setTab("orders")}>View Full Order Report</button>
-            </div>
-          ):(
-            <div className="card" style={{marginBottom:10,borderColor:"var(--green-bg)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{color:"var(--green)",fontSize:20}}>✓</span>
-                <div>
-                  <div style={{fontFamily:"var(--font-serif)",fontSize:16,fontWeight:600,color:"var(--green)"}}>All Stock Above Par</div>
-                  <div style={{fontSize:11,color:"var(--text-dim)",marginTop:2}}>No orders needed this week</div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="g3" style={{marginBottom:10}}>
-            {[{l:"Ingredients",v:ingredients.length,c:"var(--accent)"},{l:"Sales",v:totalMonthly,c:"var(--green)"},{l:"Week",v:weekNum,c:"var(--gold)"}].map(s=>(
-              <div key={s.l} className="card" style={{textAlign:"center",padding:"14px 8px"}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:28,fontWeight:700,color:s.c,lineHeight:1}}>{s.v}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".12em",textTransform:"uppercase",marginTop:4}}>{s.l}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Profit snapshot */}
-          {(() => {
-            const ingMap = Object.fromEntries(ingredients.map(i=>[i.id,i]));
-            const totalRev = recipes.reduce((a,r)=>a+(num(r.salePrice)*num(monthlySales[r.id])),0);
-            const totalCost = recipes.reduce((a,r)=>a+(calcPourCost(r,ingMap)*num(monthlySales[r.id])),0);
-            const gp = totalRev - totalCost;
-            const margin = totalRev>0 ? (gp/totalRev)*100 : 0;
-            if (totalRev===0) return null;
-            return (
-              <div className="card" style={{marginBottom:10,borderColor:margin>=70?"#86efac40":margin>=50?"#fcd34d40":"#fca5a540"}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                  <span className="sect" style={{margin:0}}>Profit Snapshot</span>
-                  <button className="btn-icon" style={{fontSize:10,padding:"4px 10px",height:"auto",fontFamily:"var(--font-mono)",letterSpacing:".06em"}} onClick={()=>{setTab("setup");setSubTab("margins");}}>
-                    Full Report →
-                  </button>
-                </div>
-                <div className="g2">
-                  <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px 14px"}}>
-                    <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--accent)"}}>{fmtAUD(totalRev)}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".1em",textTransform:"uppercase",marginTop:2}}>Revenue</div>
-                  </div>
-                  <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px 14px"}}>
-                    <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--green)"}}>{fmtAUD(gp)}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".1em",textTransform:"uppercase",marginTop:2}}>Gross Profit</div>
-                  </div>
-                </div>
-                <div style={{marginTop:12}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>Avg margin</span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:margin>=70?"var(--green)":margin>=50?"var(--gold)":"var(--red)"}}>{margin.toFixed(1)}%</span>
-                  </div>
-                  <div style={{height:6,background:"var(--border)",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${Math.min(100,margin)}%`,background:margin>=70?"var(--green)":margin>=50?"var(--gold)":"var(--red)",borderRadius:3,transition:"width .4s"}}/>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-          {topUsed.length>0&&(
-            <div className="card" style={{marginBottom:10}}>
-              <span className="sect">Top Usage This Month</span>
-              {topUsed.map(ing=>{
-                const cc = catColor(ing.category);
-                return (
-                  <div key={ing.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <div style={{width:3,height:32,background:cc.dot,borderRadius:2,flexShrink:0}}/>
-                      <div>
-                        <div style={{fontSize:13,color:"var(--text)"}}>{ing.name}</div>
-                        <div style={{fontSize:10,color:cc.text,fontFamily:"var(--font-mono)",marginTop:1}}>{ing.category}</div>
-                      </div>
-                    </div>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:cc.dot,fontWeight:500}}>{fmtP(ing.purchaseUnit,toPurch(ing,usage[ing.id]||0))}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <div className="card">
-            <span className="sect">Workflow</span>
-            {[["Monthly","var(--blue)","Physical count → Opening Stock"],["Weekly","var(--gold)","Update deliveries → log sales → check Orders"],["Monthly","var(--blue)","Closing count → Variance → New Month"]].map(([c,col,t],i)=>(
-              <div key={i} style={{display:"flex",gap:12,marginBottom:i<2?10:0,alignItems:"flex-start"}}>
-                <span style={{color:col,fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase",minWidth:52,paddingTop:2}}>{c}</span>
-                <span style={{fontSize:12,color:"var(--text-mid)",lineHeight:1.5}}>{t}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{textAlign:"center",marginTop:14}}>
-            <button className="btn-ghost" onClick={()=>setModal("reset")}>Reset app to demo data</button>
-          </div>
-        </div>
-      )}
-
-      {/* ══ STOCK ══ */}
-      {tab==="stock" && (
-        <div className="page">
-          <div className="page-header">
-            <div className="page-title">Stock Count</div>
-          </div>
-          <div className="subtabs">
-            <button className={`subtab ${stockTab==="opening"?"on":""}`} onClick={()=>setStockTab("opening")}>Opening</button>
-            <button className={`subtab ${stockTab==="deliveries"?"on":""}`} onClick={()=>setStockTab("deliveries")}>Deliveries</button>
-            <button className={`subtab ${stockTab==="closing"?"on":""}`} onClick={()=>setStockTab("closing")}>Closing</button>
-          </div>
-
-          {/* ── Opening Stock ── */}
-          {stockTab==="opening" && (
-            <div className="card" style={{borderColor:"#7dd3fc22"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Opening Stock</div>
-                <span className="tag-b">Monthly</span>
-              </div>
-              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter once per month after your physical count.</div>
-              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
-              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
-              {(() => {
-                const filtered = filterIngs(ingredients, stockCat, stockSearch);
-                return filtered.length===0
-                  ? <div className="no-results">No ingredients match</div>
-                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {filtered.map(ing=>(
-                        <div key={ing.id}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <CatTag category={ing.category}/>
-                          </div>
-                          <NumInput
-                            value={openingStock[String(ing.id)]??""}
-                            suffix={`${countUnit(ing)}s`}
-                            placeholder="0"
-                            sublabel={openingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit, countToBase(ing, openingStock[String(ing.id)]))}` : ""}
-                            onChange={val=>{
-                              if(!monthStart) setMonthStart(dateStr());
-                              setOpeningStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({openingStock:u}));return u;});
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>;
-              })()}
-            </div>
-          )}
-
-          {/* ── Deliveries ── */}
-          {stockTab==="deliveries" && (
-            <div className="card">
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Deliveries</div>
-                <span className="tag">Running total</span>
-              </div>
-              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Increase as stock arrives throughout the month.</div>
-              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
-              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
-              {(() => {
-                const filtered = filterIngs(ingredients, stockCat, stockSearch);
-                return filtered.length===0
-                  ? <div className="no-results">No ingredients match</div>
-                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {filtered.map(ing=>(
-                        <div key={ing.id}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <CatTag category={ing.category}/>
-                          </div>
-                          <NumInput
-                            value={deliveries[String(ing.id)]??""}
-                            suffix={`${countUnit(ing)}s`}
-                            placeholder="0"
-                            sublabel={deliveries[String(ing.id)] ? `= ${fmtB(ing.recipeUnit, countToBase(ing, deliveries[String(ing.id)]))}` : ""}
-                            onChange={val=>{
-                              setDeliveries(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({deliveries:u}));return u;});
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>;
-              })()}
-            </div>
-          )}
-
-          {/* ── Closing Stock ── */}
-          {stockTab==="closing" && (
-            <div className="card" style={{borderColor:"#7dd3fc22"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--blue)"}}>Closing Stock</div>
-                <span className="tag-b">Monthly</span>
-              </div>
-              <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter at month end. Used for variance and next month's opening stock.</div>
-              <SearchBar value={stockSearch} onChange={setStockSearch} placeholder="Search ingredients..." />
-              <CategoryFilter selected={stockCat} onChange={setStockCat} counts={catCounts(ingredients)} />
-              {(() => {
-                const filtered = filterIngs(ingredients, stockCat, stockSearch);
-                return filtered.length===0
-                  ? <div className="no-results">No ingredients match</div>
-                  : <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {filtered.map(ing=>(
-                        <div key={ing.id}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                            <label className="field-label" style={{margin:0}}>{ing.name}</label>
-                            <CatTag category={ing.category}/>
-                          </div>
-                          <NumInput
-                            value={closingStock[String(ing.id)]??""}
-                            suffix={`${countUnit(ing)}s`}
-                            placeholder="e.g. 1.5"
-                            sublabel={closingStock[String(ing.id)] ? `= ${fmtB(ing.recipeUnit, countToBase(ing, closingStock[String(ing.id)]))}` : ""}
-                            onChange={val=>{
-                              setClosingStock(prev=>{const u={...prev,[String(ing.id)]:val};savePeriod(periodSnap({closingStock:u}));return u;});
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>;
-              })()}
-              {ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="") && (
-                <button className="btn-blue" style={{width:"100%",marginTop:20}} onClick={()=>{ setTab("variance"); setVarTab("results"); }}>
-                  View Variance Results →
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══ ORDERS ══ */}
-      {tab==="orders" && (
-        <div className="page">
-          <div className="page-header">
-            <div className="page-title">Order Report</div>
-            <button onClick={()=>setOrderShowAll(p=>!p)} style={{background:"none",border:"1px solid var(--border)",color:"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:11,padding:"7px 14px",borderRadius:20,cursor:"pointer"}}>
-              {orderShowAll ? "Needs ordering only" : "Show all"}
-            </button>
-          </div>
-
-          {weekTotal>0&&<div style={{marginBottom:12,fontSize:11,color:"#92400E",background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:10,padding:"10px 14px"}}>⚠ {weekTotal} drinks not yet logged — order figures may be understated</div>}
-          <SearchBar value={orderSearch} onChange={setOrderSearch} placeholder="Search ingredients..." />
-          <CategoryFilter
-            selected={orderCat} onChange={setOrderCat}
-            counts={(() => {
-              const src = orderShowAll ? orderSugs : orderSugs.filter(i=>i.toOrder>0);
-              const c={}; src.forEach(i=>{c[i.category]=(c[i.category]||0)+1;}); return c;
-            })()}
-          />
-
-          {(() => {
-            const src = orderShowAll ? orderSugs : orderSugs.filter(i=>i.toOrder>0);
-            const filtered = filterIngs(src, orderCat, orderSearch);
-            if (filtered.length===0 && !orderShowAll) return (
-              <div className="card" style={{textAlign:"center",padding:32}}>
-                <div style={{color:"var(--green)",fontSize:28,marginBottom:8}}>✓</div>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:18,color:"var(--green)",marginBottom:4}}>All Stock Above Par</div>
-                <div style={{fontSize:11,color:"var(--text-dim)"}}>Nothing to order this week</div>
-              </div>
-            );
-            if (filtered.length===0) return <div className="no-results">No ingredients match</div>;
-            return filtered.map(ing=>{
-              const ob=countToBase(ing,openingStock[String(ing.id)]);
-              const db=countToBase(ing,deliveries[String(ing.id)]);
-              const ub=usage[ing.id]||0;
-              const rb=ob+db-ub;
-              return (
-                <div key={ing.id} className="card" style={{marginBottom:8,borderColor:ing.toOrder>0?"var(--gold-dim)":"var(--border)"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div style={{flex:1,paddingRight:12}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                        <span style={{fontFamily:"var(--font-serif)",fontSize:16,fontWeight:600}}>{ing.name}</span>
-                        <CatTag category={ing.category}/>
-                      </div>
-                      <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
-                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Opening</span><span style={{color:"var(--text-mid)"}}>{fmtP(countUnit(ing),baseToCount(ing,ob))}</span></div>
-                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Delivered</span><span style={{color:"var(--text-mid)"}}>{fmtP(countUnit(ing),baseToCount(ing,db))}</span></div>
-                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Used</span><span style={{color:"var(--text-mid)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,ub))}</span></div>
-                        <div style={{borderTop:"1px solid var(--border)",marginTop:3,paddingTop:3,display:"flex",justifyContent:"space-between"}}>
-                          <span>Remaining</span><span style={{color:"var(--text)"}}>{fmtP(ing.purchaseUnit,toPurch(ing,rb))}</span>
-                        </div>
-                        <div style={{display:"flex",justifyContent:"space-between"}}><span>Par</span><span style={{color:"var(--text)"}}>{ing.par} {ing.purchaseUnit}s</span></div>
-                      </div>
-                    </div>
-                    <div style={{textAlign:"right",minWidth:80}}>
-                      {ing.toOrder>0?(
-                        <div style={{background:"var(--gold-bg)",border:"1px solid var(--gold-dim)",borderRadius:12,padding:"10px 12px",textAlign:"center"}}>
-                          <div style={{fontFamily:"var(--font-serif)",fontSize:30,fontWeight:700,color:"var(--gold)",lineHeight:1}}>{ing.toOrder}</div>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--gold)",marginTop:2}}>{ing.purchaseUnit}{ing.toOrder!==1?"s":""}</div>
-                        </div>
-                      ):<span className="tag-g"><Icon.check/> Par</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            });
-          })()}
-        </div>
-      )}
-
-      {/* ══ VARIANCE ══ */}
-      {tab==="variance" && (
-        <div className="page">
-          <div className="page-header">
-            <div className="page-title">Variance</div>
-          </div>
-          <div className="subtabs">
-            <button className={`subtab ${varTab==="sales"?"on":""}`} onClick={()=>setVarTab("sales")}>
-              Sales{weekTotal>0?` (${weekTotal})`:""}</button>
-            <button className={`subtab ${varTab==="results"?"on":""}`} onClick={()=>setVarTab("results")}>
-              Results{ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="")?" ●":""}
-            </button>
-          </div>
-
-          {/* ── Sales ── */}
-          {varTab==="sales" && (
-            <div>
-              <div className="card" style={{marginBottom:10}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                  <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:600,color:"var(--gold)"}}>Week {weekNum} Sales</div>
-                  <span className="tag-d">Not logged</span>
-                </div>
-                <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:14,lineHeight:1.5}}>Enter this week's sales then log them to add to the monthly total.</div>
-                <div style={{marginBottom:14}}>
-                  <label className="field-label">Import CSV from POS</label>
-                  <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:8}}>Format: DrinkName, Quantity</div>
-                  <input type="file" accept=".csv" style={{color:"var(--text-mid)",fontSize:12,fontFamily:"var(--font-mono)"}} onChange={handleCSV} />
-                  {csvError&&<div style={{color:"var(--red)",fontSize:11,marginTop:6}}>{csvError}</div>}
-                </div>
-                <hr className="hr"/>
-                {/* Sales search */}
-                <SearchBar value={salesSearch} onChange={setSalesSearch} placeholder="Search drinks..." />
-                {/* Group recipes by type for display */}
-                {(() => {
-                  const GROUPS = [
-                    { label:"Cocktails", ids: recipes.filter(r=>r.id<=15).map(r=>r.id) },
-                    { label:"Beer",      ids: recipes.filter(r=>r.id>=16&&r.id<=20).map(r=>r.id) },
-                    { label:"Wine",      ids: recipes.filter(r=>r.id>=21).map(r=>r.id) },
-                  ];
-                  return GROUPS.map(group=>{
-                    const filtered = group.ids
-                      .map(id=>recipes.find(r=>r.id===id))
-                      .filter(r=>r && (salesSearch===""||r.name.toLowerCase().includes(salesSearch.toLowerCase())));
-                    if (filtered.length===0) return null;
-                    return (
-                      <div key={group.label} style={{marginBottom:16}}>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:".15em",textTransform:"uppercase",color:"var(--text-dim)",marginBottom:10,paddingBottom:6,borderBottom:"1px solid var(--border)"}}>{group.label}</div>
-                        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                          {filtered.map(recipe=>(
-                            <div key={recipe.id}>
-                              <label className="field-label">{recipe.name}</label>
-                              <input type="text" inputMode="decimal" placeholder="0 sold"
-                                autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false}
-                                value={weekSales[recipe.id]??""}
-                                onChange={e=>setWeekSales(prev=>({...prev,[recipe.id]:e.target.value}))}
-                                style={{background:"var(--input-bg)",border:"1.5px solid var(--border)",color:"var(--text)",fontFamily:"var(--font-mono)",fontSize:15,padding:"14px 16px",borderRadius:10,width:"100%",outline:"none",WebkitAppearance:"none"}}
-                                onFocus={e=>e.target.style.borderColor="var(--gold)"}
-                                onBlur={e=>e.target.style.borderColor="var(--border)"}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-                {recipes.length===0&&<div style={{fontSize:13,color:"var(--text-dim)"}}>Add recipes in Setup first.</div>}
-                {weekTotal>0&&<button className="btn-primary" onClick={()=>setModal("logWeek")}>Log Week {weekNum} — {weekTotal} drinks</button>}
-              </div>
-              {weeklyLog.length>0&&(
-                <div className="card">
-                  <span className="sect">Monthly Sales Log</span>
-                  {weeklyLog.map((entry,i)=>(
-                    <div key={i} className="wk">
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                        <span style={{fontSize:12,color:"var(--text-mid)"}}>{entry.label}</span>
-                        <span style={{fontSize:11,color:"var(--text-dim)"}}>{Object.values(entry.sales).reduce((a,b)=>a+num(b),0)} drinks</span>
-                      </div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                        {Object.entries(entry.sales).filter(([,v])=>num(v)>0).map(([rid,qty])=>{
-                          const r=recipes.find(x=>x.id===parseInt(rid));
-                          return r?<span key={rid} className="tag">{r.name}: {qty}</span>:null;
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{fontSize:11,color:"var(--text-dim)",paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                    Monthly total: <span style={{color:"var(--accent)"}}>{totalMonthly} drinks</span> across {weeklyLog.length} week{weeklyLog.length!==1?"s":""}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Variance Results ── */}
-          {varTab==="results" && (
-            <div>
-              {!ingredients.some(i=>closingStock[String(i.id)]!==undefined&&closingStock[String(i.id)]!=="") ? (
-                <div className="card">
-                  <div className="no-results" style={{padding:"40px 16px"}}>
-                    <div style={{marginBottom:8}}>No closing counts entered yet</div>
-                    <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:16}}>Enter closing stock on the Stock page first</div>
-                    <button className="btn-secondary" style={{margin:"0 auto",display:"block"}} onClick={()=>setTab("stock")}>
-                      Go to Stock →
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <SearchBar value={varSearch} onChange={setVarSearch} placeholder="Search ingredients..." />
-                  <CategoryFilter selected={varCat} onChange={setVarCat} counts={catCounts(ingredients)} />
-                  {filterIngs(ingredients, varCat, varSearch)
-                    .filter(item=>closingStock[String(item.id)]!==undefined&&closingStock[String(item.id)]!=="")
-                    .map(item=>{
-                      // Both tP and aP in PURCHASE units (cases for beer) for consistent comparison
-                      const tP  = toPurch(item, theoClose[item.id]??0);
-                      const aP  = toPurch(item, countToBase(item, num(closingStock[String(item.id)])));
-                      const vP  = aP - tP;
-                      const pct = tP!==0 ? ((vP/tP)*100).toFixed(1) : "—";
-                      const isNeg = vP < -0.1, isPos = vP > 0.1;
-                      return (
-                        <div key={item.id} className="card" style={{marginBottom:8,borderColor:isNeg?"var(--red-bg)":isPos?"var(--green-bg)":"var(--border)"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-                            <div style={{flex:1}}>
-                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                                <span style={{fontFamily:"var(--font-serif)",fontSize:15,fontWeight:600}}>{item.name}</span>
-                                <CatTag category={item.category}/>
-                              </div>
-                              {/* Bottle quantities — prominent */}
-                              <div style={{display:"flex",flexDirection:"column",gap:3,fontSize:11,fontFamily:"var(--font-mono)"}}>
-                                <div style={{display:"flex",justifyContent:"space-between",color:"var(--text-dim)"}}>
-                                  <span>Theoretical</span>
-                                  <span style={{color:"var(--text-mid)"}}>
-                                    {fmtP(item.purchaseUnit, tP)} {item.purchaseUnit}s
-                                    {item.purchaseUnit==="case"&&<span style={{color:"var(--text-dim)",fontSize:10}}> ({Math.round(tP*item.purchaseSize)} bottles)</span>}
-                                  </span>
-                                </div>
-                                <div style={{display:"flex",justifyContent:"space-between",color:"var(--text-dim)"}}>
-                                  <span>Actual count</span>
-                                  <span style={{color:"var(--text)"}}>
-                                    {fmtP(item.purchaseUnit, aP)} {item.purchaseUnit}s
-                                    {item.purchaseUnit==="case"&&<span style={{color:"var(--text-dim)",fontSize:10}}> ({Math.round(aP*item.purchaseSize)} bottles)</span>}
-                                  </span>
-                                </div>
-                                <div style={{display:"flex",justifyContent:"space-between",paddingTop:4,marginTop:2,borderTop:"1px solid var(--border)",color:"var(--text-dim)"}}>
-                                  <span>Difference</span>
-                                  <span style={{color:isNeg?"var(--red)":isPos?"var(--green)":"var(--text-dim)",fontWeight:500}}>
-                                    {vP>0?"+":""}{fmtP(item.purchaseUnit, vP)} {item.purchaseUnit}s
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div style={{textAlign:"right",minWidth:70,paddingTop:22}}>
-                              <div style={{fontFamily:"var(--font-serif)",fontSize:26,fontWeight:700,color:isNeg?"var(--red)":isPos?"var(--green)":"var(--text-dim)",lineHeight:1}}>
-                                {vP>0?"+":""}{Math.abs(vP).toFixed(2)}
-                              </div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",marginTop:2}}>{item.purchaseUnit}s</div>
-                              <div style={{fontSize:10,color:"var(--text-dim)",marginTop:2}}>{pct}%</div>
-                              <div style={{marginTop:6}}>
-                                {isNeg&&<span className="tag-r">Investigate ⚠</span>}
-                                {isPos&&<span className="tag-g">Surplus</span>}
-                                {!isNeg&&!isPos&&<span className="tag-d">On Track</span>}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  <div style={{marginTop:14}}>
-                    <button className="btn-blue" style={{width:"100%"}} onClick={()=>setModal("newMonth")}>Close Month & Roll Over →</button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══ SETUP ══ */}
-      {tab==="setup" && (
-        <div className="page">
-          <div className="page-header">
-            <div className="page-title">Setup</div>
-          </div>
-          <div className="subtabs">
-            <button className={`subtab ${subTab==="ingredients"?"on":""}`} onClick={()=>setSubTab("ingredients")}>Ingredients</button>
-            <button className={`subtab ${subTab==="recipes"?"on":""}`} onClick={()=>setSubTab("recipes")}>Recipes</button>
-            <button className={`subtab ${subTab==="margins"?"on":""}`} onClick={()=>setSubTab("margins")}>Margins</button>
-          </div>
-
-          {subTab==="ingredients" && (
-            <div>
-              <div className="card" style={{marginBottom:10}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:600,color:"var(--gold)",marginBottom:16}}>Add Ingredient</div>
-                <div className="field">
-                  <label className="field-label">Name</label>
-                  <TextInput placeholder="e.g. Aperol" value={newIng.name} onChange={v=>setNewIng(p=>({...p,name:v}))} />
-                </div>
-                <div className="field">
-                  <label className="field-label">Category</label>
-                  <Select value={newIng.category} onChange={v=>setNewIng(p=>({...p,category:v}))}>
-                    {CATEGORIES.map(c=><option key={c}>{c}</option>)}
-                  </Select>
-                </div>
-                <div className="g2" style={{marginBottom:14}}>
-                  <div>
-                    <label className="field-label">Recipe Unit</label>
-                    <Select value={newIng.recipeUnit} onChange={v=>setNewIng(p=>({...p,recipeUnit:v}))}>
-                      {RECIPE_UNITS.map(u=><option key={u}>{u}</option>)}
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="field-label">Purchase Unit</label>
-                    <Select value={newIng.purchaseUnit} onChange={v=>setNewIng(p=>({...p,purchaseUnit:v}))}>
-                      {PURCHASE_UNITS.map(u=><option key={u}>{u}</option>)}
-                    </Select>
-                  </div>
-                </div>
-                <div className="g2" style={{marginBottom:14}}>
-                  <div>
-                    <label className="field-label">{newIng.recipeUnit} per {newIng.purchaseUnit}</label>
-                    <NumInput value={newIng.purchaseSize} placeholder="e.g. 700" onChange={v=>setNewIng(p=>({...p,purchaseSize:v}))} />
-                  </div>
-                  <div>
-                    <label className="field-label">Par ({newIng.purchaseUnit}s)</label>
-                    <NumInput value={newIng.par} placeholder="e.g. 6" onChange={v=>setNewIng(p=>({...p,par:v}))} />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="field-label">Cost per {newIng.purchaseUnit} (AUD)</label>
-                  <NumInput value={newIng.costPerPurchaseUnit} placeholder="e.g. 85.00" onChange={v=>setNewIng(p=>({...p,costPerPurchaseUnit:v}))}
-                    sublabel={newIng.costPerPurchaseUnit&&newIng.purchaseSize ? `= ${fmtAUD(num(newIng.costPerPurchaseUnit)/num(newIng.purchaseSize))} per ${newIng.recipeUnit}` : ""}
-                  />
-                </div>
-                {newIng.purchaseSize&&newIng.par&&(
-                  <div className="cbar">1 <b>{newIng.purchaseUnit}</b> = <b>{newIng.purchaseSize}{newIng.recipeUnit}</b><br/>Par = <b>{newIng.par} {newIng.purchaseUnit}s</b> = <b>{(num(newIng.par)*num(newIng.purchaseSize)).toLocaleString()}{newIng.recipeUnit}</b></div>
-                )}
-                <button className="btn-primary" style={{marginTop:14}} onClick={()=>{
-                  if(!newIng.name||!newIng.purchaseSize||!newIng.par) return showToast("Fill all fields");
-                  const upd=[...ingredients,{id:Date.now(),name:newIng.name,category:newIng.category,recipeUnit:newIng.recipeUnit,purchaseUnit:newIng.purchaseUnit,purchaseSize:num(newIng.purchaseSize),par:num(newIng.par),costPerPurchaseUnit:num(newIng.costPerPurchaseUnit)}];
-                  setIngredients(upd); saveLib(upd,recipes);
-                  setNewIng({name:"",category:"Spirits",recipeUnit:"ml",purchaseUnit:"bottle",purchaseSize:"",par:"",costPerPurchaseUnit:""});
-                  showToast("Ingredient saved");
-                }}>Add Ingredient</button>
-              </div>
-
-              {/* Library with search + filter */}
-              <div className="card">
-                <span className="sect">Library — {ingredients.length} ingredients</span>
-                <SearchBar value={libSearch} onChange={setLibSearch} placeholder="Search ingredients..." />
-                <CategoryFilter selected={libCat} onChange={setLibCat} counts={catCounts(ingredients)} />
-                {(() => {
-                  const filtered = filterIngs(ingredients, libCat, libSearch);
-                  return filtered.length===0
-                    ? <div className="no-results">No ingredients match</div>
-                    : filtered.map(ing=>(
-                      <div key={ing.id}>
-                        {editIngId===ing.id ? (
-                          /* ── EDIT MODE ── */
-                          <div style={{padding:"14px 0",borderBottom:"1px solid var(--border)"}}>
-                            <div className="field">
-                              <label className="field-label">Name</label>
-                              <TextInput value={editIng.name} onChange={v=>setEditIng(p=>({...p,name:v}))} placeholder="Name" />
-                            </div>
-                            <div className="field">
-                              <label className="field-label">Category</label>
-                              <Select value={editIng.category} onChange={v=>setEditIng(p=>({...p,category:v}))}>
-                                {CATEGORIES.map(c=><option key={c}>{c}</option>)}
-                              </Select>
-                            </div>
-                            <div className="g2" style={{marginBottom:12}}>
-                              <div>
-                                <label className="field-label">Recipe Unit</label>
-                                <Select value={editIng.recipeUnit} onChange={v=>setEditIng(p=>({...p,recipeUnit:v}))}>
-                                  {RECIPE_UNITS.map(u=><option key={u}>{u}</option>)}
-                                </Select>
-                              </div>
-                              <div>
-                                <label className="field-label">Purchase Unit</label>
-                                <Select value={editIng.purchaseUnit} onChange={v=>setEditIng(p=>({...p,purchaseUnit:v}))}>
-                                  {PURCHASE_UNITS.map(u=><option key={u}>{u}</option>)}
-                                </Select>
-                              </div>
-                            </div>
-                            <div className="g2" style={{marginBottom:12}}>
-                              <div>
-                                <label className="field-label">{editIng.recipeUnit} per {editIng.purchaseUnit}</label>
-                                <NumInput value={editIng.purchaseSize} placeholder="e.g. 700" onChange={v=>setEditIng(p=>({...p,purchaseSize:v}))} />
-                              </div>
-                              <div>
-                                <label className="field-label">Par ({editIng.purchaseUnit}s)</label>
-                                <NumInput value={editIng.par} placeholder="e.g. 6" onChange={v=>setEditIng(p=>({...p,par:v}))} />
-                              </div>
-                            </div>
-                            <div className="field">
-                              <label className="field-label">Cost per {editIng.purchaseUnit} (AUD)</label>
-                              <NumInput value={editIng.costPerPurchaseUnit} placeholder="e.g. 85.00" onChange={v=>setEditIng(p=>({...p,costPerPurchaseUnit:v}))}
-                                sublabel={editIng.costPerPurchaseUnit&&editIng.purchaseSize ? `= ${fmtAUD(num(editIng.costPerPurchaseUnit)/num(editIng.purchaseSize))} per ${editIng.recipeUnit}` : ""}
-                              />
-                            </div>
-                            <div style={{display:"flex",gap:8}}>
-                              <button className="btn-primary" style={{flex:1}} onClick={()=>{
-                                if(!editIng.name||!editIng.purchaseSize||!editIng.par) return showToast("Fill all fields");
-                                const upd=ingredients.map(i=>i.id===ing.id?{...i,...editIng,purchaseSize:num(editIng.purchaseSize),par:num(editIng.par),costPerPurchaseUnit:num(editIng.costPerPurchaseUnit)}:i);
-                                setIngredients(upd); saveLib(upd,recipes);
-                                setEditIngId(null); showToast("Ingredient updated");
-                              }}>Save Changes</button>
-                              <button className="btn-secondary" onClick={()=>setEditIngId(null)}>Cancel</button>
-                              <button className="btn-icon" onClick={()=>{
-                                const upd=ingredients.filter(i=>i.id!==ing.id);
-                                setIngredients(upd); saveLib(upd,recipes);
-                                setEditIngId(null); showToast("Removed");
-                              }}><Icon.trash/></button>
-                            </div>
-                          </div>
-                        ) : (
-                          /* ── VIEW MODE ── */
-                          <div className="ing-row" style={{borderLeftColor:catColor(ing.category).dot}}>
-                            <div style={{flex:1}}>
-                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                                <span style={{fontSize:14,fontWeight:500}}>{ing.name}</span>
-                                <span style={{display:"inline-block",background:catColor(ing.category).bg,color:catColor(ing.category).text,border:`1px solid ${catColor(ing.category).border}`,fontFamily:"var(--font-mono)",fontSize:9,padding:"2px 8px",borderRadius:10,letterSpacing:".06em"}}>{ing.category}</span>
-                              </div>
-                              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                                <span className="pill">{ing.recipeUnit}</span>
-                                <span className="pill">{ing.purchaseUnit}</span>
-                                <span className="pill">1 {ing.purchaseUnit} = {ing.purchaseSize}{ing.recipeUnit}</span>
-                                <span className="tag">par: {ing.par}</span>
-                                {ing.costPerPurchaseUnit ? <span className="tag-g">{fmtAUD(ing.costPerPurchaseUnit)}/{ing.purchaseUnit}</span> : null}
-                              </div>
-                            </div>
-                            <button className="btn-icon" style={{flexShrink:0}} onClick={()=>{
-                              setEditIngId(ing.id);
-                              setEditIng({name:ing.name,category:ing.category,recipeUnit:ing.recipeUnit,purchaseUnit:ing.purchaseUnit,purchaseSize:String(ing.purchaseSize),par:String(ing.par),costPerPurchaseUnit:String(ing.costPerPurchaseUnit||"")});
-                            }}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ));
-                })()}
-              </div>
-            </div>
-          )}
-
-          {subTab==="recipes" && (
-            <div>
-              <div className="card" style={{marginBottom:10}}>
-                <div style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:600,color:"var(--gold)",marginBottom:16}}>
-                  {editRecId ? "Edit Recipe" : "Build Recipe Spec"}
-                </div>
-                <div className="field">
-                  <label className="field-label">Drink Name</label>
-                  <TextInput placeholder="e.g. Aperol Spritz" value={newRec.name} onChange={v=>setNewRec(p=>({...p,name:v}))} />
-                </div>
-                <div className="field">
-                  <label className="field-label">Sale Price (AUD)</label>
-                  <NumInput value={newRec.salePrice} placeholder="e.g. 22.00" onChange={v=>setNewRec(p=>({...p,salePrice:v}))} />
-                </div>
-
-                {/* Ingredient picker with search */}
-                <div style={{marginBottom:12}}>
-                  <label className="field-label">Ingredient</label>
-                  <SearchBar value={recSearch} onChange={v=>{setRecSearch(v);setNewRI(p=>({...p,ingredientId:""}));}} placeholder="Type to search ingredients..." />
-                  <select
-                    value={newRI.ingredientId}
-                    onChange={e=>setNewRI(p=>({...p,ingredientId:e.target.value}))}
-                    style={{background:"var(--input-bg)",border:"1.5px solid var(--border)",color:newRI.ingredientId?"var(--text)":"var(--text-dim)",fontFamily:"var(--font-mono)",fontSize:15,padding:"14px 16px",borderRadius:10,width:"100%",outline:"none",appearance:"none",WebkitAppearance:"none",cursor:"pointer"}}
-                    onFocus={e=>e.target.style.borderColor="var(--gold)"}
-                    onBlur={e=>e.target.style.borderColor="var(--border)"}
-                  >
-                    <option value="">— select ingredient —</option>
-                    {ingredients
-                      .filter(i => recSearch==="" || i.name.toLowerCase().includes(recSearch.toLowerCase()))
-                      .map(i=><option key={i.id} value={i.id}>{i.name} ({i.category} · {i.recipeUnit})</option>)
-                    }
-                  </select>
-                </div>
-                <div style={{marginBottom:12}}>
-                  <label className="field-label">
-                    Quantity {newRI.ingredientId&&`(${ingredients.find(i=>i.id===parseInt(newRI.ingredientId))?.recipeUnit})`}
-                  </label>
-                  <NumInput value={newRI.quantity} placeholder="e.g. 50"
-                    sublabel={newRI.ingredientId&&newRI.quantity?(()=>{const ing=ingredients.find(i=>i.id===parseInt(newRI.ingredientId));return ing?`${fmtP(ing.purchaseUnit,toPurch(ing,num(newRI.quantity)))} of 1 ${ing.purchaseUnit} per serve`:null;})():null}
-                    onChange={v=>setNewRI(p=>({...p,quantity:v}))} />
-                </div>
-                <div style={{display:"flex",gap:8,margin:"12px 0"}}>
-                  <button className="btn-secondary" style={{flex:1}} onClick={()=>{
-                    if(!newRI.ingredientId||!newRI.quantity) return;
-                    setNewRec(p=>({...p,ings:[...p.ings,{ingredientId:parseInt(newRI.ingredientId),quantity:num(newRI.quantity)}]}));
-                    setNewRI({ingredientId:"",quantity:""}); setRecSearch("");
-                  }}>+ Add to Spec</button>
-                  <button className="btn-primary" style={{flex:1}} onClick={()=>{
-                    if(!newRec.name||newRec.ings.length===0) return showToast("Need name + 1 ingredient");
-                    let upd;
-                    if(editRecId) {
-                      upd=recipes.map(r=>r.id===editRecId?{...r,name:newRec.name,salePrice:num(newRec.salePrice),ingredients:newRec.ings}:r);
-                      setEditRecId(null);
-                      showToast("Recipe updated");
-                    } else {
-                      upd=[...recipes,{id:Date.now(),name:newRec.name,salePrice:num(newRec.salePrice),ingredients:newRec.ings}];
-                      showToast("Recipe saved");
-                    }
-                    setRecipes(upd); saveLib(ingredients,upd);
-                    setNewRec({name:"",salePrice:"",ings:[]});
-                  }}>{editRecId?"Update Recipe":"Save Recipe"}</button>
-                  {editRecId&&<button className="btn-secondary" onClick={()=>{setEditRecId(null);setNewRec({name:"",salePrice:"",ings:[]});}}>Cancel</button>}
-                </div>
-                {newRec.ings.length>0&&(
-                  <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:10,padding:14}}>
-                    <span className="sect">Preview — {newRec.name||"Untitled"}</span>
-                    {newRec.ings.map((ri,idx)=>{
-                      const ing=ingredients.find(i=>i.id===ri.ingredientId);
-                      return (
-                        <div key={idx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
-                          <span style={{fontSize:12,color:"var(--text-mid)"}}>{ing?.name}</span>
-                          <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontSize:12,color:"var(--accent)",fontFamily:"var(--font-mono)"}}>{ri.quantity}{ing?.recipeUnit}</span>
-                            <button style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:16,lineHeight:1}} onClick={()=>setNewRec(p=>({...p,ings:p.ings.filter((_,i)=>i!==idx)}))}>×</button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="card">
-                <span className="sect">Recipe Library — {recipes.length} recipes</span>
-                <SearchBar value={recLibSearch} onChange={setRecLibSearch} placeholder="Search recipes..." />
-                {recipes.length===0&&<div style={{fontSize:13,color:"var(--text-dim)"}}>No recipes yet.</div>}
-                {recipes
-                  .filter(r=>recLibSearch===""||r.name.toLowerCase().includes(recLibSearch.toLowerCase()))
-                  .map(recipe=>(
-                  <div key={recipe.id} style={{paddingBottom:16,marginBottom:14,borderBottom:"1px solid var(--border)"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                      <div style={{fontFamily:"var(--font-serif)",fontSize:17,fontWeight:600}}>{recipe.name}</div>
-                      <div style={{display:"flex",gap:8}}>
-                        <button className="btn-icon" onClick={()=>{
-                          // Load recipe into the build form for editing
-                          setEditRecId(recipe.id);
-                          setNewRec({name:recipe.name, salePrice:String(recipe.salePrice||""), ings:recipe.ingredients.map(ri=>({ingredientId:ri.ingredientId,quantity:ri.quantity}))});
-                          setNewRI({ingredientId:"",quantity:""});
-                          setRecSearch("");
-                          window.scrollTo({top:0,behavior:"smooth"});
-                          showToast("Recipe loaded for editing — make changes and hit Save");
-                        }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
-                        <button className="btn-icon" onClick={()=>{const u=recipes.filter(r=>r.id!==recipe.id);setRecipes(u);saveLib(ingredients,u);showToast("Removed");}}>
-                          <Icon.trash/>
-                        </button>
-                      </div>
-                    </div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
-                      {recipe.salePrice ? <span className="tag-g">{fmtAUD(recipe.salePrice)}</span> : null}
-                      {recipe.ingredients.map((ri,idx)=>{
-                        const ing=ingredients.find(i=>i.id===ri.ingredientId);
-                        return <span key={idx} className="tag">{ing?.name}: {ri.quantity}{ing?.recipeUnit}</span>;
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {subTab==="margins" && (
-            <div>
-              {/* Summary cards */}
-              {(() => {
-                const ingMap = Object.fromEntries(ingredients.map(i=>[i.id,i]));
-                const recipesWithMargin = recipes.map(r=>{
-                  const pourCost = calcPourCost(r, ingMap);
-                  const sale = num(r.salePrice);
-                  const gp = sale - pourCost;
-                  const margin = sale > 0 ? (gp/sale)*100 : 0;
-                  const qtySold = num(monthlySales[r.id]);
-                  const revenue = sale * qtySold;
-                  const costTotal = pourCost * qtySold;
-                  return {...r, pourCost, sale, gp, margin, qtySold, revenue, costTotal};
-                }).filter(r=>r.sale>0);
-
-                const totalRevenue = recipesWithMargin.reduce((a,r)=>a+r.revenue,0);
-                const totalCost    = recipesWithMargin.reduce((a,r)=>a+r.costTotal,0);
-                const totalGP      = totalRevenue - totalCost;
-                const avgMargin    = totalRevenue > 0 ? (totalGP/totalRevenue)*100 : 0;
-                const sorted       = [...recipesWithMargin].sort((a,b)=>b.margin-a.margin);
-                const topPerf      = sorted.slice(0,3);
-                const bottomPerf   = sorted.slice(-3).reverse();
-
-                return (
-                  <>
-                    {/* Revenue summary */}
-                    <div className="card" style={{marginBottom:10}}>
-                      <span className="sect">This Month</span>
-                      <div className="g3" style={{marginBottom:0}}>
-                        {[
-                          {l:"Revenue",  v:fmtAUD(totalRevenue), col:"var(--accent)"},
-                          {l:"Pour Cost",v:fmtAUD(totalCost),    col:"var(--red)"},
-                          {l:"Gross Profit",v:fmtAUD(totalGP),   col:"var(--green)"},
-                        ].map(s=>(
-                          <div key={s.l} style={{textAlign:"center",padding:"14px 8px",background:"var(--surface2)",borderRadius:12}}>
-                            <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:700,color:s.col,lineHeight:1}}>{s.v}</div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:".1em",textTransform:"uppercase",marginTop:4}}>{s.l}</div>
-                          </div>
-                        ))}
-                      </div>
-                      {totalRevenue>0&&(
-                        <div style={{marginTop:12,textAlign:"center",fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-mid)"}}>
-                          Avg margin <span style={{color:avgMargin>=70?"var(--green)":avgMargin>=50?"var(--gold)":"var(--red)",fontWeight:600}}>{avgMargin.toFixed(1)}%</span>
-                        </div>
-                      )}
-                      {totalRevenue===0&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:10,textAlign:"center"}}>Log sales to see revenue data</div>}
-                    </div>
-
-                    {/* Top performers */}
-                    {topPerf.length>0&&(
-                      <div className="card" style={{marginBottom:10}}>
-                        <span className="sect">🏆 Top Margin</span>
-                        {topPerf.map((r,i)=>(
-                          <div key={r.id} className="row">
-                            <div>
-                              <div style={{fontSize:14,fontWeight:500,marginBottom:2}}>{r.name}</div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>
-                                Pour cost {fmtAUD(r.pourCost)} · Sale {fmtAUD(r.sale)}
-                              </div>
-                            </div>
-                            <div style={{textAlign:"right"}}>
-                              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:700,color:"var(--green)"}}>{r.margin.toFixed(0)}%</div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)"}}>{fmtAUD(r.gp)} GP</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Bottom performers */}
-                    {bottomPerf.length>0&&recipesWithMargin.length>3&&(
-                      <div className="card" style={{marginBottom:10}}>
-                        <span className="sect">⚠ Lowest Margin</span>
-                        {bottomPerf.map(r=>(
-                          <div key={r.id} className="row">
-                            <div>
-                              <div style={{fontSize:14,fontWeight:500,marginBottom:2}}>{r.name}</div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)"}}>
-                                Pour cost {fmtAUD(r.pourCost)} · Sale {fmtAUD(r.sale)}
-                              </div>
-                            </div>
-                            <div style={{textAlign:"right"}}>
-                              <div style={{fontFamily:"var(--font-serif)",fontSize:20,fontWeight:700,color:r.margin<30?"var(--red)":"var(--gold)"}}>{r.margin.toFixed(0)}%</div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)"}}>{fmtAUD(r.gp)} GP</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Full margin table */}
-                    <div className="card">
-                      <span className="sect">All Items — sorted by margin</span>
-                      {sorted.map(r=>{
-                        const barW = Math.min(100, r.margin);
-                        const barCol = r.margin>=70?"var(--green)":r.margin>=50?"var(--gold)":"var(--red)";
-                        return (
-                          <div key={r.id} style={{paddingBottom:14,marginBottom:12,borderBottom:"1px solid var(--border)"}}>
-                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                              <div style={{flex:1,paddingRight:12}}>
-                                <div style={{fontSize:13,fontWeight:500,marginBottom:2}}>{r.name}</div>
-                                <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)"}}>
-                                  Pour {fmtAUD(r.pourCost)} · Sale {fmtAUD(r.sale)} · GP {fmtAUD(r.gp)}
-                                </div>
-                              </div>
-                              <div style={{textAlign:"right",minWidth:60}}>
-                                <div style={{fontFamily:"var(--font-serif)",fontSize:18,fontWeight:700,color:barCol}}>{r.margin.toFixed(0)}%</div>
-                              </div>
-                            </div>
-                            {/* Margin bar */}
-                            <div style={{height:4,background:"var(--border)",borderRadius:2,overflow:"hidden"}}>
-                              <div style={{height:"100%",width:`${barW}%`,background:barCol,borderRadius:2,transition:"width .3s"}}/>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {recipesWithMargin.length===0&&<div className="no-results">Add sale prices to recipes to see margins</div>}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* LOG WEEK SHEET */}
-      {modal==="logWeek"&&(
-        <div className="overlay" onClick={()=>setModal(null)}>
-          <div className="sheet" onClick={e=>e.stopPropagation()}>
-            <div className="sheet-handle"/>
-            <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--gold)",marginBottom:8}}>Log Week {weekNum}</div>
-            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:16}}>These sales will be added to your monthly total.</div>
-            <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:10,padding:14,marginBottom:16}}>
-              {Object.entries(weekSales).filter(([,v])=>num(v)>0).map(([rid,qty])=>{
-                const r=recipes.find(x=>x.id===parseInt(rid));
-                return r?<div key={rid} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:13}}><span style={{color:"var(--text-mid)"}}>{r.name}</span><span style={{color:"var(--accent)",fontFamily:"var(--font-mono)"}}>{qty}</span></div>:null;
-              })}
-              <div style={{display:"flex",justifyContent:"space-between",paddingTop:10,marginTop:6,borderTop:"1px solid var(--border)",fontSize:12,color:"var(--text-dim)"}}>
-                <span>Total</span><span style={{color:"var(--accent)",fontFamily:"var(--font-mono)"}}>{weekTotal} drinks</span>
-              </div>
-            </div>
-            <button className="btn-primary" style={{marginBottom:10}} onClick={logWeek}>Confirm & Log</button>
-            <button className="btn-secondary" style={{width:"100%"}} onClick={()=>setModal(null)}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {/* NEW MONTH SHEET */}
-      {modal==="newMonth"&&(
-        <div className="overlay" onClick={()=>setModal(null)}>
-          <div className="sheet" onClick={e=>e.stopPropagation()}>
-            <div className="sheet-handle"/>
-            <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--blue)",marginBottom:8}}>Start New Month?</div>
-            <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.8,marginBottom:20}}>
-              · Closing count → new opening stock<br/>
-              · Clears deliveries, sales log, closing stock<br/>
-              · Resets to Week 1<br/>
-              · Keeps ingredients, recipes and par levels<br/><br/>
-              <span style={{color:"#fb923c"}}>Cannot be undone.</span>
-            </div>
-            <button className="btn-blue" style={{width:"100%",marginBottom:10}} onClick={doNewMonth}>Confirm New Month</button>
-            <button className="btn-secondary" style={{width:"100%"}} onClick={()=>setModal(null)}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {/* RESET SHEET */}
-      {modal==="reset"&&(
-        <div className="overlay" onClick={()=>setModal(null)}>
-          <div className="sheet" onClick={e=>e.stopPropagation()}>
-            <div className="sheet-handle"/>
-            <div style={{fontFamily:"var(--font-serif)",fontSize:22,fontWeight:700,color:"var(--red)",marginBottom:8}}>Reset Everything?</div>
-            <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>Wipes all data and reloads demo data.</div>
-            <button style={{background:"var(--red)",color:"#fff",border:"none",fontFamily:"var(--font-mono)",fontSize:12,padding:"15px",borderRadius:10,cursor:"pointer",width:"100%",marginBottom:10}} onClick={doReset}>Wipe Everything</button>
-            <button className="btn-secondary" style={{width:"100%"}} onClick={()=>setModal(null)}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {toast&&<div className="toast">{toast}</div>}
+      {/* Main */}
+      <main style={{ flex: 1, overflow: "auto" }}>
+        {tab === "dashboard" && <DashboardPage lib={lib} period={period} ingMap={ingMap} usage={usage} theoClose={theoClose} getStatus={getStatus} setTab={setTab} />}
+        {tab === "inventory" && <InventoryPage lib={lib} period={period} ingMap={ingMap} theoClose={theoClose} usage={usage} getStatus={getStatus} updatePeriod={updatePeriod} />}
+        {tab === "recipes"   && <RecipesPage lib={lib} ingMap={ingMap} updateLib={updateLib} />}
+        {tab === "sales"     && <SalesPage lib={lib} period={period} ingMap={ingMap} weekSales={weekSales} setWeekSales={setWeekSales} logWeek={logWeek} />}
+        {tab === "orders"    && <OrdersPage lib={lib} theoClose={theoClose} ingMap={ingMap} />}
       </main>
     </div>
-  );
+  )
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+
+function DashboardPage({ lib, period, ingMap, usage, theoClose, getStatus, setTab }) {
+  const totalRevenue = lib.recipes.reduce((sum, r) => sum + r.salePrice * (period.monthlySales[r.id] || 0), 0)
+  const totalPourCost = lib.recipes.reduce((sum, r) => sum + calcPourCost(r, ingMap) * (period.monthlySales[r.id] || 0), 0)
+  const grossProfit = totalRevenue - totalPourCost
+  const avgMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
+
+  const orderNeeded = lib.ingredients.filter(ing => {
+    const s = getStatus(ing)
+    return s === "Order Needed" || s === "Critical"
+  })
+
+  const recipeMargins = lib.recipes.map(r => {
+    const pc = calcPourCost(r, ingMap)
+    const gp = r.salePrice - pc
+    const margin = r.salePrice > 0 ? (gp / r.salePrice) * 100 : 0
+    return { ...r, pourCost: pc, grossProfit: gp, margin }
+  }).filter(r => (period.monthlySales[r.id] || 0) > 0 || true)
+    .sort((a, b) => b.margin - a.margin)
+
+  const top5 = recipeMargins.slice(0, 5)
+  const bot5 = [...recipeMargins].reverse().slice(0, 5)
+
+  const topUsage = Object.entries(usage)
+    .map(([id, qty]) => ({ ing: ingMap[id], qty }))
+    .filter(x => x.ing)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 8)
+
+  const kpis = [
+    { label: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, sub: "this month" },
+    { label: "Pour Cost",     value: `$${totalPourCost.toFixed(2)}`, sub: "this month" },
+    { label: "Gross Profit",  value: `$${grossProfit.toFixed(2)}`, sub: "this month" },
+    { label: "Avg Margin",    value: `${avgMargin.toFixed(1)}%`, sub: "across menu" },
+    { label: "Order Alerts",  value: orderNeeded.length, sub: "items below par" },
+    { label: "Current Week",  value: `Week ${period.weekNum}`, sub: "of month" },
+  ]
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <PageTitle title="Dashboard" />
+      {/* KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 24 }}>
+        {kpis.map(k => (
+          <div key={k.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "12px 14px" }}>
+            <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>{k.label}</div>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 18, fontWeight: 700, color: "#111827" }}>{k.value}</div>
+            <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+        {/* Order Alerts */}
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6 }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 600, fontSize: 13 }}>Order Alerts</span>
+            <button onClick={() => setTab("orders")} style={{ fontSize: 11, color: "#2563eb", background: "none", border: "none", cursor: "pointer" }}>View Full Report →</button>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Name","Category","Remaining","Par","To Order"].map(h => (
+                  <th key={h} style={{ padding: "6px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#6b7280", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orderNeeded.slice(0, 8).map(ing => {
+                const rem = toPurch(ing, theoClose[ing.id] || 0)
+                const toOrd = orderSuggestion(ing, theoClose)
+                return (
+                  <tr key={ing.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "6px 12px", fontSize: 12 }}>{ing.name}</td>
+                    <td style={{ padding: "6px 12px" }}><CatPill category={ing.category} /></td>
+                    <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "#dc2626" }}>{rem.toFixed(2)}</td>
+                    <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{ing.par}</td>
+                    <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: "#dc2626" }}>{toOrd}</td>
+                  </tr>
+                )
+              })}
+              {orderNeeded.length === 0 && <tr><td colSpan={5} style={{ padding: "16px 12px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>All items at or above par</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Top Usage */}
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6 }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb" }}>
+            <span style={{ fontWeight: 600, fontSize: 13 }}>Top Usage This Month</span>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Name","Category","Used","Est. Cost"].map(h => (
+                  <th key={h} style={{ padding: "6px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#6b7280", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {topUsage.map(({ ing, qty }) => (
+                <tr key={ing.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                  <td style={{ padding: "6px 12px", fontSize: 12 }}>{ing.name}</td>
+                  <td style={{ padding: "6px 12px" }}><CatPill category={ing.category} /></td>
+                  <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{qty.toFixed(1)} {ing.recipeUnit}</td>
+                  <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${(qty * costPerUnit(ing)).toFixed(2)}</td>
+                </tr>
+              ))}
+              {topUsage.length === 0 && <tr><td colSpan={4} style={{ padding: "16px 12px", color: "#9ca3af", fontSize: 12, textAlign: "center" }}>No sales logged yet</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Margins */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6 }}>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb" }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>Recipe Margins</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+          <div>
+            <div style={{ padding: "8px 12px", background: "#f0fdf4", fontSize: 11, fontWeight: 700, color: "#166534", borderBottom: "1px solid #e5e7eb" }}>▲ Top 5 by Margin</div>
+            <MarginTable rows={top5} />
+          </div>
+          <div style={{ borderLeft: "1px solid #e5e7eb" }}>
+            <div style={{ padding: "8px 12px", background: "#fff1f2", fontSize: 11, fontWeight: 700, color: "#991b1b", borderBottom: "1px solid #e5e7eb" }}>▼ Bottom 5 by Margin</div>
+            <MarginTable rows={bot5} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MarginTable({ rows }) {
+  return (
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <thead>
+        <tr style={{ background: "#f9fafb" }}>
+          {["Name","Pour Cost","Sale Price","Margin %"].map(h => (
+            <th key={h} style={{ padding: "6px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#6b7280", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(r => (
+          <tr key={r.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+            <td style={{ padding: "6px 12px", fontSize: 12 }}>{r.name}</td>
+            <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${r.pourCost.toFixed(2)}</td>
+            <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${r.salePrice.toFixed(2)}</td>
+            <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: r.margin >= 60 ? "#166534" : r.margin >= 40 ? "#854d0e" : "#991b1b" }}>
+              {r.margin.toFixed(1)}%
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+// ─── INVENTORY ────────────────────────────────────────────────────────────────
+
+function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updatePeriod }) {
+  const [catFilter, setCatFilter] = useState("All")
+  const [search, setSearch] = useState("")
+  const cats = ["All", ...Array.from(new Set(lib.ingredients.map(i => i.category)))]
+
+  const filtered = lib.ingredients.filter(ing => {
+    if (catFilter !== "All" && ing.category !== catFilter) return false
+    if (search && !ing.name.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  })
+
+  const setStock = (field, id, val) => {
+    updatePeriod(prev => ({ ...prev, [field]: { ...prev[field], [id]: val } }))
+  }
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <PageTitle title="Inventory">
+        <SearchBar value={search} onChange={setSearch} placeholder="Search ingredients…" />
+      </PageTitle>
+      {/* Category filters */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        {cats.map(c => (
+          <button key={c} onClick={() => setCatFilter(c)} style={{
+            padding: "4px 12px", fontSize: 12, borderRadius: 20, cursor: "pointer",
+            background: catFilter === c ? "#111827" : "#fff",
+            color: catFilter === c ? "#fff" : "#374151",
+            border: `1px solid ${catFilter === c ? "#111827" : "#d1d5db"}`,
+          }}>{c}</button>
+        ))}
+      </div>
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f9fafb", position: "sticky", top: 0 }}>
+              {["Name","Category","Opening Stock","Deliveries","Closing Stock","Theoretical","Variance","Par","Status"].map(h => (
+                <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((ing, i) => {
+              const theo = theoClose[ing.id] || 0
+              const theoInCount = baseToCount(ing, theo)
+              const variance = calcVariance(ing, theoClose, period.closingStock)
+              const status = getStatus(ing)
+              const unit = countUnit(ing)
+              return (
+                <tr key={ing.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+                  <td style={{ padding: "6px 12px", fontSize: 12, fontWeight: 500 }}>{ing.name}</td>
+                  <td style={{ padding: "6px 12px" }}><CatPill category={ing.category} /></td>
+                  <td style={{ padding: "4px 8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <NumInput value={period.openingStock[ing.id] || 0} onChange={v => setStock("openingStock", ing.id, v)} />
+                      <span style={{ fontSize: 10, color: "#9ca3af" }}>{unit}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "4px 8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <NumInput value={period.deliveries[ing.id] || 0} onChange={v => setStock("deliveries", ing.id, v)} />
+                      <span style={{ fontSize: 10, color: "#9ca3af" }}>{unit}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "4px 8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <NumInput value={period.closingStock[ing.id] || ""} onChange={v => setStock("closingStock", ing.id, v)} />
+                      <span style={{ fontSize: 10, color: "#9ca3af" }}>{unit}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{theoInCount.toFixed(2)} {unit}</td>
+                  <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: variance < -0.05 ? "#dc2626" : variance > 0.05 ? "#16a34a" : "#6b7280" }}>
+                    {variance >= 0 ? "+" : ""}{variance.toFixed(2)} {ing.purchaseUnit}
+                  </td>
+                  <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{ing.par}</td>
+                  <td style={{ padding: "6px 12px" }}><StatusPill status={status} /></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ─── RECIPES ──────────────────────────────────────────────────────────────────
+
+function RecipesPage({ lib, ingMap, updateLib }) {
+  const [subTab, setSubTab] = useState("specs")
+  const [search, setSearch] = useState("")
+  const [expanded, setExpanded] = useState({})
+  const [editing, setEditing] = useState(null)
+
+  const filtered = lib.recipes.filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()))
+
+  const toggleExpand = (id) => setExpanded(p => ({ ...p, [id]: !p[id] }))
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <PageTitle title="Recipes">
+        <SearchBar value={search} onChange={setSearch} placeholder="Search recipes…" />
+      </PageTitle>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {["specs","margins"].map(t => (
+          <button key={t} onClick={() => setSubTab(t)} style={{
+            padding: "5px 16px", fontSize: 12, borderRadius: 4, cursor: "pointer",
+            background: subTab === t ? "#111827" : "#fff",
+            color: subTab === t ? "#fff" : "#374151",
+            border: `1px solid ${subTab === t ? "#111827" : "#d1d5db"}`,
+          }}>{t === "specs" ? "Recipe Specs" : "Margins"}</button>
+        ))}
+      </div>
+
+      {subTab === "specs" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Name","Category","Sale Price","Pour Cost","GP","Margin %",""].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((recipe, i) => {
+                const pc = calcPourCost(recipe, ingMap)
+                const gp = recipe.salePrice - pc
+                const margin = recipe.salePrice > 0 ? (gp / recipe.salePrice) * 100 : 0
+                return (
+                  <>
+                    <tr key={recipe.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }} onClick={() => toggleExpand(recipe.id)}>
+                      <td style={{ padding: "7px 12px", fontSize: 12, fontWeight: 500 }}>
+                        <span style={{ marginRight: 6, color: "#9ca3af" }}>{expanded[recipe.id] ? "▼" : "▶"}</span>
+                        {recipe.name}
+                      </td>
+                      <td style={{ padding: "7px 12px" }}><CatPill category={recipe.category} /></td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${recipe.salePrice.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${pc.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${gp.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: margin >= 60 ? "#16a34a" : margin >= 40 ? "#d97706" : "#dc2626" }}>
+                        {margin.toFixed(1)}%
+                      </td>
+                      <td style={{ padding: "7px 12px" }}>
+                        <button onClick={e => { e.stopPropagation(); setEditing(recipe) }} style={{ fontSize: 11, padding: "2px 8px", border: "1px solid #d1d5db", borderRadius: 4, background: "#fff", cursor: "pointer" }}>Edit</button>
+                      </td>
+                    </tr>
+                    {expanded[recipe.id] && (
+                      <tr key={recipe.id + "-exp"}>
+                        <td colSpan={7} style={{ padding: "0 12px 12px 32px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                          <table style={{ borderCollapse: "collapse", marginTop: 8 }}>
+                            <thead>
+                              <tr>
+                                {["Ingredient","Qty","Unit","Cost"].map(h => (
+                                  <th key={h} style={{ padding: "4px 12px", textAlign: "left", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {recipe.ingredients.map(ri => {
+                                const ing = ingMap[ri.id]
+                                if (!ing) return null
+                                const cost = ri.qty * costPerUnit(ing)
+                                return (
+                                  <tr key={ri.id}>
+                                    <td style={{ padding: "3px 12px", fontSize: 12 }}>{ing.name}</td>
+                                    <td style={{ padding: "3px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{ri.qty}</td>
+                                    <td style={{ padding: "3px 12px", fontSize: 12, color: "#6b7280" }}>{ing.recipeUnit}</td>
+                                    <td style={{ padding: "3px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${cost.toFixed(4)}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {subTab === "margins" && (
+        <MarginsTab recipes={lib.recipes} ingMap={ingMap} />
+      )}
+    </div>
+  )
+}
+
+function MarginsTab({ recipes, ingMap }) {
+  const rows = recipes.map(r => {
+    const pc = calcPourCost(r, ingMap)
+    const gp = r.salePrice - pc
+    const margin = r.salePrice > 0 ? (gp / r.salePrice) * 100 : 0
+    return { ...r, pourCost: pc, grossProfit: gp, margin }
+  }).sort((a, b) => b.margin - a.margin)
+
+  const avgMargin = rows.reduce((s, r) => s + r.margin, 0) / rows.length
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ background: "#f9fafb" }}>
+            {["Name","Category","Sale Price","Pour Cost","Gross Profit","Margin %","Bar"].map(h => (
+              <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+              <td style={{ padding: "6px 12px", fontSize: 12, fontWeight: 500 }}>{r.name}</td>
+              <td style={{ padding: "6px 12px" }}><CatPill category={r.category} /></td>
+              <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${r.salePrice.toFixed(2)}</td>
+              <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${r.pourCost.toFixed(2)}</td>
+              <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${r.grossProfit.toFixed(2)}</td>
+              <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: r.margin >= 60 ? "#16a34a" : r.margin >= 40 ? "#d97706" : "#dc2626" }}>
+                {r.margin.toFixed(1)}%
+              </td>
+              <td style={{ padding: "6px 12px", minWidth: 120 }}>
+                <div style={{ height: 8, background: "#f3f4f6", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.min(100, r.margin)}%`, background: r.margin >= 60 ? "#16a34a" : r.margin >= 40 ? "#d97706" : "#dc2626", borderRadius: 4 }} />
+                </div>
+              </td>
+            </tr>
+          ))}
+          <tr style={{ background: "#f1f5f9", fontWeight: 700, borderTop: "2px solid #d1d5db" }}>
+            <td colSpan={5} style={{ padding: "8px 12px", fontSize: 12 }}>Average</td>
+            <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{avgMargin.toFixed(1)}%</td>
+            <td />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── SALES ────────────────────────────────────────────────────────────────────
+
+function SalesPage({ lib, period, ingMap, weekSales, setWeekSales, logWeek }) {
+  const [subTab, setSubTab] = useState("week")
+  const [search, setSearch] = useState("")
+  const [expandedWeek, setExpandedWeek] = useState({})
+
+  const groups = ["Cocktails", "Beer", "Wine"]
+  const filtered = lib.recipes.filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()))
+
+  const weekRevenue = lib.recipes.reduce((s, r) => s + r.salePrice * (weekSales[r.id] || 0), 0)
+  const weekPourCost = lib.recipes.reduce((s, r) => s + calcPourCost(r, ingMap) * (weekSales[r.id] || 0), 0)
+  const weekGP = weekRevenue - weekPourCost
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <PageTitle title="Sales">
+        {subTab === "week" && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <SearchBar value={search} onChange={setSearch} placeholder="Search drinks…" />
+            <button onClick={logWeek} style={{ padding: "7px 16px", background: "#111827", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+              Log This Week
+            </button>
+          </div>
+        )}
+      </PageTitle>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[["week","This Week"],["log","Monthly Log"]].map(([id, label]) => (
+          <button key={id} onClick={() => setSubTab(id)} style={{
+            padding: "5px 16px", fontSize: 12, borderRadius: 4, cursor: "pointer",
+            background: subTab === id ? "#111827" : "#fff",
+            color: subTab === id ? "#fff" : "#374151",
+            border: `1px solid ${subTab === id ? "#111827" : "#d1d5db"}`,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {subTab === "week" && (
+        <>
+          {groups.map(group => {
+            const groupRecipes = filtered.filter(r => r.category === group)
+            if (groupRecipes.length === 0) return null
+            return (
+              <div key={group} style={{ marginBottom: 20, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+                <div style={{ padding: "8px 12px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb", fontWeight: 700, fontSize: 12, color: "#374151" }}>{group}</div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#fafafa" }}>
+                      {["Drink","Category","Qty Sold","Revenue","Pour Cost","GP"].map(h => (
+                        <th key={h} style={{ padding: "6px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#6b7280", borderBottom: "1px solid #f3f4f6" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupRecipes.map((recipe, i) => {
+                      const qty = weekSales[recipe.id] || 0
+                      const pc = calcPourCost(recipe, ingMap)
+                      const rev = recipe.salePrice * qty
+                      const pourCostTotal = pc * qty
+                      const gp = rev - pourCostTotal
+                      return (
+                        <tr key={recipe.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+                          <td style={{ padding: "5px 12px", fontSize: 12, fontWeight: 500 }}>{recipe.name}</td>
+                          <td style={{ padding: "5px 12px" }}><CatPill category={recipe.category} /></td>
+                          <td style={{ padding: "4px 8px" }}>
+                            <NumInput value={qty} onChange={v => setWeekSales(p => ({ ...p, [recipe.id]: v }))} style={{ width: 60 }} />
+                          </td>
+                          <td style={{ padding: "5px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${rev.toFixed(2)}</td>
+                          <td style={{ padding: "5px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${pourCostTotal.toFixed(2)}</td>
+                          <td style={{ padding: "5px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: gp >= 0 ? "#16a34a" : "#dc2626" }}>${gp.toFixed(2)}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          })}
+          {/* Totals */}
+          <div style={{ background: "#111827", color: "#fff", borderRadius: 6, padding: "12px 16px", display: "flex", gap: 32 }}>
+            <TotalItem label="Total Revenue" value={`$${weekRevenue.toFixed(2)}`} />
+            <TotalItem label="Total Pour Cost" value={`$${weekPourCost.toFixed(2)}`} />
+            <TotalItem label="Gross Profit" value={`$${weekGP.toFixed(2)}`} highlight />
+          </div>
+        </>
+      )}
+
+      {subTab === "log" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Week","Date","Drinks Sold","Revenue","Pour Cost","GP"].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {period.weeklyLog.map((wk, i) => {
+                const recipes = lib.recipes
+                const wkRevenue = recipes.reduce((s, r) => s + r.salePrice * (wk.sales[r.id] || 0), 0)
+                const wkPourCost = recipes.reduce((s, r) => s + calcPourCost(r, { ...Object.fromEntries(DEFAULT_INGREDIENTS.map(x => [x.id, x])) }) * (wk.sales[r.id] || 0), 0)
+                const wkDrinks = Object.values(wk.sales).reduce((s, v) => s + v, 0)
+                const wkGP = wkRevenue - wkPourCost
+                return (
+                  <>
+                    <tr key={wk.label} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }} onClick={() => setExpandedWeek(p => ({ ...p, [i]: !p[i] }))}>
+                      <td style={{ padding: "7px 12px", fontSize: 12, fontWeight: 600 }}>
+                        <span style={{ marginRight: 6, color: "#9ca3af" }}>{expandedWeek[i] ? "▼" : "▶"}</span>
+                        {wk.label}
+                      </td>
+                      <td style={{ padding: "7px 12px", fontSize: 12 }}>{wk.weekOf}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{wkDrinks}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${wkRevenue.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${wkPourCost.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "#16a34a" }}>${wkGP.toFixed(2)}</td>
+                    </tr>
+                    {expandedWeek[i] && (
+                      <tr key={wk.label + "-exp"}>
+                        <td colSpan={6} style={{ padding: "0 12px 12px 32px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                          <table style={{ borderCollapse: "collapse", marginTop: 8 }}>
+                            <thead>
+                              <tr>{["Drink","Qty","Revenue"].map(h => <th key={h} style={{ padding: "3px 12px", textAlign:"left", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>{h}</th>)}</tr>
+                            </thead>
+                            <tbody>
+                              {Object.entries(wk.sales).filter(([, q]) => q > 0).map(([rid, qty]) => {
+                                const r = lib.recipes.find(x => x.id === rid)
+                                if (!r) return null
+                                return (
+                                  <tr key={rid}>
+                                    <td style={{ padding: "2px 12px", fontSize: 12 }}>{r.name}</td>
+                                    <td style={{ padding: "2px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{qty}</td>
+                                    <td style={{ padding: "2px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${(r.salePrice * qty).toFixed(2)}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
+              {period.weeklyLog.length === 0 && (
+                <tr><td colSpan={6} style={{ padding: "24px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No weeks logged yet</td></tr>
+              )}
+              {/* Monthly totals */}
+              {period.weeklyLog.length > 0 && (() => {
+                const mRev = lib.recipes.reduce((s, r) => s + r.salePrice * (period.monthlySales[r.id] || 0), 0)
+                const ingMapAll = Object.fromEntries(DEFAULT_INGREDIENTS.map(x => [x.id, x]))
+                const mPC = lib.recipes.reduce((s, r) => s + calcPourCost(r, ingMapAll) * (period.monthlySales[r.id] || 0), 0)
+                const mDrinks = Object.values(period.monthlySales).reduce((s, v) => s + v, 0)
+                return (
+                  <tr style={{ background: "#1f2937", color: "#fff", fontWeight: 700, borderTop: "2px solid #374151" }}>
+                    <td colSpan={2} style={{ padding: "8px 12px", fontSize: 12 }}>Monthly Total</td>
+                    <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{mDrinks}</td>
+                    <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${mRev.toFixed(2)}</td>
+                    <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${mPC.toFixed(2)}</td>
+                    <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "#86efac" }}>${(mRev - mPC).toFixed(2)}</td>
+                  </tr>
+                )
+              })()}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TotalItem({ label, value, highlight }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: highlight ? "#86efac" : "#fff" }}>{value}</div>
+    </div>
+  )
+}
+
+// ─── ORDERS ───────────────────────────────────────────────────────────────────
+
+function OrdersPage({ lib, theoClose, ingMap }) {
+  const [showAll, setShowAll] = useState(false)
+  const [catFilter, setCatFilter] = useState("All")
+  const cats = ["All", ...Array.from(new Set(lib.ingredients.map(i => i.category)))]
+
+  const rows = lib.ingredients
+    .map(ing => {
+      const rem = toPurch(ing, theoClose[ing.id] || 0)
+      const toOrd = orderSuggestion(ing, theoClose)
+      const used = (theoClose[ing.id] !== undefined)
+        ? (/* calculate usage from open+del-theo */ 0)
+        : 0
+      return { ing, rem, toOrd }
+    })
+    .filter(r => showAll || r.toOrd > 0)
+    .filter(r => catFilter === "All" || r.ing.category === catFilter)
+    .sort((a, b) => {
+      const aUrgency = a.ing.par - a.rem
+      const bUrgency = b.ing.par - b.rem
+      return bUrgency - aUrgency
+    })
+
+  const totalOrder = rows.filter(r => r.toOrd > 0).length
+  const estCost = rows.reduce((s, r) => s + r.toOrd * r.ing.costPerPurchaseUnit, 0)
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <PageTitle title="Orders">
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
+            Show all items
+          </label>
+        </div>
+      </PageTitle>
+
+      {/* Summary */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "10px 16px" }}>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>Items to order</div>
+          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 20, fontWeight: 700, color: totalOrder > 0 ? "#dc2626" : "#16a34a" }}>{totalOrder}</div>
+        </div>
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "10px 16px" }}>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>Estimated order cost</div>
+          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 20, fontWeight: 700 }}>${estCost.toFixed(2)}</div>
+        </div>
+      </div>
+
+      {/* Category filters */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        {cats.map(c => (
+          <button key={c} onClick={() => setCatFilter(c)} style={{
+            padding: "4px 12px", fontSize: 12, borderRadius: 20, cursor: "pointer",
+            background: catFilter === c ? "#111827" : "#fff",
+            color: catFilter === c ? "#fff" : "#374151",
+            border: `1px solid ${catFilter === c ? "#111827" : "#d1d5db"}`,
+          }}>{c}</button>
+        ))}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f9fafb" }}>
+              {["Name","Category","Remaining","Par","To Order","Unit","Est. Cost"].map(h => (
+                <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ ing, rem, toOrd }, i) => (
+              <tr key={ing.id} style={{ background: toOrd === 0 ? "#f9fafb" : i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6", opacity: toOrd === 0 ? 0.5 : 1 }}>
+                <td style={{ padding: "6px 12px", fontSize: 12, fontWeight: 500 }}>{ing.name}</td>
+                <td style={{ padding: "6px 12px" }}><CatPill category={ing.category} /></td>
+                <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: rem < 0 ? "#dc2626" : "#374151" }}>{rem.toFixed(2)}</td>
+                <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{ing.par}</td>
+                <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: toOrd > 0 ? "#dc2626" : "#16a34a" }}>{toOrd}</td>
+                <td style={{ padding: "6px 12px", fontSize: 12, color: "#6b7280" }}>{ing.purchaseUnit}</td>
+                <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${(toOrd * ing.costPerPurchaseUnit).toFixed(2)}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: "24px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>🎉 All items are at or above par</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ─── SHARED ───────────────────────────────────────────────────────────────────
+
+function PageTitle({ title, children }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid #e5e7eb" }}>
+      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.5px" }}>{title}</h1>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{children}</div>
+    </div>
+  )
 }
