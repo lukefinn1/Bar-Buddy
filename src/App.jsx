@@ -213,11 +213,11 @@ const fmtPct = (v) => `${v.toFixed(1)}%`
 // ─── ATOMS ────────────────────────────────────────────────────────────────────
 
 const NumInput = ({ value, onChange, style = {} }) => {
-  const [local, setLocal] = useState(String(value ?? ""))
+  const [local, setLocal] = useState(value === 0 || value === "" || value == null ? "" : String(value))
   const prevValue = useRef(value)
   useEffect(() => {
     if (prevValue.current !== value) {
-      setLocal(String(value ?? ""))
+      setLocal(value === 0 || value === "" || value == null ? "" : String(value))
       prevValue.current = value
     }
   }, [value])
@@ -226,11 +226,13 @@ const NumInput = ({ value, onChange, style = {} }) => {
       type="text"
       inputMode="decimal"
       value={local}
+      placeholder="0"
       onChange={e => setLocal(e.target.value)}
+      onFocus={e => e.target.select()}
       onBlur={() => {
         const n = parseFloat(local)
         const safe = isNaN(n) ? 0 : n
-        setLocal(String(safe))
+        setLocal(safe === 0 ? "" : String(safe))
         onChange(safe)
       }}
       style={{ width: 72, textAlign: "right", fontFamily: "JetBrains Mono, monospace", fontSize: 13, padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 4, background: "#fff", ...style }}
@@ -434,7 +436,7 @@ export default function App() {
       {/* Main */}
       <main style={{ flex: 1, overflow: "auto" }}>
         {tab === "dashboard" && <DashboardPage lib={lib} period={period} ingMap={ingMap} usage={usage} theoClose={theoClose} getStatus={getStatus} setTab={setTab} />}
-        {tab === "inventory" && <InventoryPage lib={lib} period={period} ingMap={ingMap} theoClose={theoClose} usage={usage} getStatus={getStatus} updatePeriod={updatePeriod} />}
+        {tab === "inventory" && <InventoryPage lib={lib} period={period} ingMap={ingMap} theoClose={theoClose} usage={usage} getStatus={getStatus} updatePeriod={updatePeriod} updateLib={updateLib} />}
         {tab === "recipes"   && <RecipesPage lib={lib} ingMap={ingMap} updateLib={updateLib} />}
         {tab === "sales"     && <SalesPage lib={lib} period={period} ingMap={ingMap} weekSales={weekSales} setWeekSales={setWeekSales} logWeek={logWeek} />}
         {tab === "orders"    && <OrdersPage lib={lib} theoClose={theoClose} ingMap={ingMap} />}
@@ -606,7 +608,7 @@ function MarginTable({ rows }) {
 
 // ─── INVENTORY ────────────────────────────────────────────────────────────────
 
-function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updatePeriod }) {
+function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updatePeriod, updateLib }) {
   const [catFilter, setCatFilter] = useState("All")
   const [search, setSearch] = useState("")
   const cats = ["All", ...Array.from(new Set(lib.ingredients.map(i => i.category)))]
@@ -619,6 +621,13 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
 
   const setStock = (field, id, val) => {
     updatePeriod(prev => ({ ...prev, [field]: { ...prev[field], [id]: val } }))
+  }
+
+  const setPar = (id, val) => {
+    updateLib(prev => ({
+      ...prev,
+      ingredients: prev.ingredients.map(ing => ing.id === id ? { ...ing, par: val } : ing)
+    }))
   }
 
   return (
@@ -679,7 +688,9 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
                   <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: variance < -0.05 ? "#dc2626" : variance > 0.05 ? "#16a34a" : "#6b7280" }}>
                     {variance >= 0 ? "+" : ""}{variance.toFixed(2)} {ing.purchaseUnit}
                   </td>
-                  <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{ing.par}</td>
+                  <td style={{ padding: "4px 8px" }}>
+                    <NumInput value={ing.par} onChange={v => setPar(ing.id, v)} style={{ width: 60 }} />
+                  </td>
                   <td style={{ padding: "6px 12px" }}><StatusPill status={status} /></td>
                 </tr>
               )
@@ -703,6 +714,14 @@ function RecipesPage({ lib, ingMap, updateLib }) {
 
   const toggleExpand = (id) => setExpanded(p => ({ ...p, [id]: !p[id] }))
 
+  const saveRecipe = (updated) => {
+    updateLib(prev => ({
+      ...prev,
+      recipes: prev.recipes.map(r => r.id === updated.id ? updated : r)
+    }))
+    setEditing(null)
+  }
+
   return (
     <div style={{ padding: "24px 28px" }}>
       <PageTitle title="Recipes">
@@ -718,6 +737,10 @@ function RecipesPage({ lib, ingMap, updateLib }) {
           }}>{t === "specs" ? "Recipe Specs" : "Margins"}</button>
         ))}
       </div>
+
+      {editing && (
+        <EditRecipeModal recipe={editing} ingredients={lib.ingredients} ingMap={ingMap} onSave={saveRecipe} onClose={() => setEditing(null)} />
+      )}
 
       {subTab === "specs" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
@@ -793,6 +816,97 @@ function RecipesPage({ lib, ingMap, updateLib }) {
       {subTab === "margins" && (
         <MarginsTab recipes={lib.recipes} ingMap={ingMap} />
       )}
+    </div>
+  )
+}
+
+function EditRecipeModal({ recipe, ingredients, ingMap, onSave, onClose }) {
+  const [name, setName] = useState(recipe.name)
+  const [salePrice, setSalePrice] = useState(String(recipe.salePrice))
+  const [category, setCategory] = useState(recipe.category)
+  const [ings, setIngs] = useState(recipe.ingredients.map(i => ({ ...i })))
+
+  const updateIngQty = (idx, val) => {
+    setIngs(prev => prev.map((item, i) => i === idx ? { ...item, qty: parseFloat(val) || 0 } : item))
+  }
+  const removeIng = (idx) => setIngs(prev => prev.filter((_, i) => i !== idx))
+  const addIng = () => setIngs(prev => [...prev, { id: ingredients[0].id, qty: 0 }])
+
+  const handleSave = () => {
+    const price = parseFloat(salePrice)
+    if (!name.trim() || isNaN(price)) return
+    onSave({ ...recipe, name: name.trim(), salePrice: price, category, ingredients: ings.filter(i => i.qty > 0) })
+  }
+
+  const pourCost = ings.reduce((s, ri) => {
+    const ing = ingMap[ri.id]
+    return ing ? s + ri.qty * costPerUnit(ing) : s
+  }, 0)
+  const price = parseFloat(salePrice) || 0
+  const margin = price > 0 ? ((price - pourCost) / price * 100) : 0
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "#fff", borderRadius: 8, width: 560, maxHeight: "85vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>Edit Recipe</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280" }}>×</button>
+        </div>
+        <div style={{ padding: "20px" }}>
+          {/* Name + Price */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <div style={{ gridColumn: "1/3" }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>NAME</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)}
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>SALE PRICE ($)</label>
+              <input type="text" inputMode="decimal" value={salePrice} onChange={e => setSalePrice(e.target.value)}
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13, fontFamily: "JetBrains Mono, monospace" }} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>CATEGORY</label>
+            <select value={category} onChange={e => setCategory(e.target.value)}
+              style={{ padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13 }}>
+              {["Cocktails","Beer","Wine"].map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+
+          {/* Ingredients */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 8 }}>INGREDIENTS</div>
+            {ings.map((ri, idx) => (
+              <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                <select value={ri.id} onChange={e => setIngs(prev => prev.map((item, i) => i === idx ? { ...item, id: e.target.value } : item))}
+                  style={{ flex: 1, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12 }}>
+                  {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
+                </select>
+                <input type="text" inputMode="decimal" value={ri.qty} onChange={e => updateIngQty(idx, e.target.value)}
+                  style={{ width: 70, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12, fontFamily: "JetBrains Mono, monospace", textAlign: "right" }} />
+                <span style={{ fontSize: 11, color: "#9ca3af", width: 24 }}>{ingMap[ri.id]?.recipeUnit}</span>
+                <button onClick={() => removeIng(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16, lineHeight: 1 }}>×</button>
+              </div>
+            ))}
+            <button onClick={addIng} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "1px dashed #93c5fd", borderRadius: 4, padding: "4px 12px", cursor: "pointer", marginTop: 4 }}>
+              + Add ingredient
+            </button>
+          </div>
+
+          {/* Live cost preview */}
+          <div style={{ background: "#f9fafb", borderRadius: 6, padding: "10px 14px", display: "flex", gap: 24, marginBottom: 20 }}>
+            <div><span style={{ fontSize: 11, color: "#6b7280" }}>Pour Cost </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700 }}>${pourCost.toFixed(2)}</span></div>
+            <div><span style={{ fontSize: 11, color: "#6b7280" }}>GP </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700 }}>${(price - pourCost).toFixed(2)}</span></div>
+            <div><span style={{ fontSize: 11, color: "#6b7280" }}>Margin </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, color: margin >= 60 ? "#16a34a" : margin >= 40 ? "#d97706" : "#dc2626" }}>{margin.toFixed(1)}%</span></div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button onClick={onClose} style={{ padding: "7px 16px", border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+            <button onClick={handleSave} style={{ padding: "7px 16px", border: "none", borderRadius: 5, background: "#111827", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Save Recipe</button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
