@@ -608,10 +608,13 @@ function MarginTable({ rows }) {
 
 // ─── INVENTORY ────────────────────────────────────────────────────────────────
 
+const CATEGORIES = Object.keys(CATEGORY_META)
+
 function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updatePeriod, updateLib }) {
   const [catFilter, setCatFilter] = useState("All")
   const [search, setSearch] = useState("")
-  const cats = ["All", ...Array.from(new Set(lib.ingredients.map(i => i.category)))]
+  const [editMode, setEditMode] = useState(false)
+  const cats = ["All", ...CATEGORIES]
 
   const filtered = lib.ingredients.filter(ing => {
     if (catFilter !== "All" && ing.category !== catFilter) return false
@@ -623,18 +626,74 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
     updatePeriod(prev => ({ ...prev, [field]: { ...prev[field], [id]: val } }))
   }
 
-  const setPar = (id, val) => {
+  const updateIngField = (id, field, val) => {
     updateLib(prev => ({
       ...prev,
-      ingredients: prev.ingredients.map(ing => ing.id === id ? { ...ing, par: val } : ing)
+      ingredients: prev.ingredients.map(ing => ing.id === id ? { ...ing, [field]: val } : ing)
     }))
   }
+
+  const deleteIng = (id) => {
+    if (!window.confirm("Remove this ingredient? This cannot be undone.")) return
+    updateLib(prev => ({ ...prev, ingredients: prev.ingredients.filter(i => i.id !== id) }))
+  }
+
+  const addIngredient = () => {
+    const newId = "ing_" + Date.now()
+    const newIng = {
+      id: newId, name: "New Ingredient", category: "Spirits",
+      recipeUnit: "ml", purchaseUnit: "bottle", purchaseSize: 700,
+      par: 2, costPerPurchaseUnit: 0,
+    }
+    updateLib(prev => ({ ...prev, ingredients: [...prev.ingredients, newIng] }))
+  }
+
+  const cellInput = (val, onChange, opts = {}) => (
+    <input
+      type="text" inputMode={opts.numeric ? "decimal" : "text"}
+      defaultValue={val}
+      onFocus={e => e.target.select()}
+      onBlur={e => {
+        const v = opts.numeric ? (parseFloat(e.target.value) || 0) : e.target.value.trim()
+        onChange(v)
+      }}
+      style={{
+        width: opts.width || "100%", padding: "3px 6px",
+        border: "1px solid #d1d5db", borderRadius: 3,
+        fontSize: 12, fontFamily: opts.mono ? "JetBrains Mono, monospace" : "inherit",
+        background: "#fff",
+      }}
+    />
+  )
 
   return (
     <div style={{ padding: "24px 28px" }}>
       <PageTitle title="Inventory">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search ingredients…" />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <SearchBar value={search} onChange={setSearch} placeholder="Search ingredients…" />
+          {editMode ? (
+            <>
+              <button onClick={addIngredient} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer" }}>
+                + Add Product
+              </button>
+              <button onClick={() => setEditMode(false)} style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 5, background: "#111827", color: "#fff", cursor: "pointer" }}>
+                Done Editing
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setEditMode(true)} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", color: "#374151" }}>
+              ✏️ Edit Inventory
+            </button>
+          )}
+        </div>
       </PageTitle>
+
+      {editMode && (
+        <div style={{ marginBottom: 12, padding: "8px 14px", background: "#fef9c3", border: "1px solid #fde047", borderRadius: 6, fontSize: 12, color: "#854d0e" }}>
+          Edit mode active — click any cell to edit name, category, cost, size, par, or units. Changes save automatically.
+        </div>
+      )}
+
       {/* Category filters */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {cats.map(c => (
@@ -646,13 +705,19 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
           }}>{c}</button>
         ))}
       </div>
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: editMode ? 1100 : 900 }}>
           <thead>
-            <tr style={{ background: "#f9fafb", position: "sticky", top: 0 }}>
-              {["Name","Category","Opening Stock","Deliveries","Closing Stock","Theoretical","Variance","Par","Status"].map(h => (
-                <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
-              ))}
+            <tr style={{ background: "#f9fafb" }}>
+              {editMode
+                ? ["Name","Category","Recipe Unit","Purchase Unit","Size","Cost ($)","Par","Opening","Deliveries","Closing","Variance","Status",""].map(h => (
+                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                  ))
+                : ["Name","Category","Opening Stock","Deliveries","Closing Stock","Theoretical","Variance","Par","Status"].map(h => (
+                    <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                  ))
+              }
             </tr>
           </thead>
           <tbody>
@@ -662,8 +727,80 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
               const variance = calcVariance(ing, theoClose, period.closingStock)
               const status = getStatus(ing)
               const unit = countUnit(ing)
+              const rowBg = i % 2 === 0 ? "#fff" : "#fafafa"
+
+              if (editMode) {
+                return (
+                  <tr key={ing.id} style={{ background: rowBg, borderBottom: "1px solid #f3f4f6" }}>
+                    {/* Name */}
+                    <td style={{ padding: "4px 8px", minWidth: 160 }}>
+                      {cellInput(ing.name, v => updateIngField(ing.id, "name", v))}
+                    </td>
+                    {/* Category */}
+                    <td style={{ padding: "4px 8px", minWidth: 130 }}>
+                      <select
+                        defaultValue={ing.category}
+                        onBlur={e => updateIngField(ing.id, "category", e.target.value)}
+                        style={{ width: "100%", padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 3, fontSize: 12 }}
+                      >
+                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </td>
+                    {/* Recipe Unit */}
+                    <td style={{ padding: "4px 8px", minWidth: 80 }}>
+                      <select
+                        defaultValue={ing.recipeUnit}
+                        onBlur={e => updateIngField(ing.id, "recipeUnit", e.target.value)}
+                        style={{ width: "100%", padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 3, fontSize: 12 }}
+                      >
+                        {["ml","g","unit"].map(u => <option key={u}>{u}</option>)}
+                      </select>
+                    </td>
+                    {/* Purchase Unit */}
+                    <td style={{ padding: "4px 8px", minWidth: 100 }}>
+                      {cellInput(ing.purchaseUnit, v => updateIngField(ing.id, "purchaseUnit", v))}
+                    </td>
+                    {/* Purchase Size */}
+                    <td style={{ padding: "4px 8px", minWidth: 70 }}>
+                      {cellInput(ing.purchaseSize, v => updateIngField(ing.id, "purchaseSize", v), { numeric: true, mono: true, width: 70 })}
+                    </td>
+                    {/* Cost */}
+                    <td style={{ padding: "4px 8px", minWidth: 80 }}>
+                      {cellInput(ing.costPerPurchaseUnit, v => updateIngField(ing.id, "costPerPurchaseUnit", v), { numeric: true, mono: true, width: 70 })}
+                    </td>
+                    {/* Par */}
+                    <td style={{ padding: "4px 8px", minWidth: 60 }}>
+                      {cellInput(ing.par, v => updateIngField(ing.id, "par", v), { numeric: true, mono: true, width: 55 })}
+                    </td>
+                    {/* Opening */}
+                    <td style={{ padding: "4px 8px", minWidth: 80 }}>
+                      <NumInput value={period.openingStock[ing.id] || 0} onChange={v => setStock("openingStock", ing.id, v)} style={{ width: 65 }} />
+                    </td>
+                    {/* Deliveries */}
+                    <td style={{ padding: "4px 8px", minWidth: 80 }}>
+                      <NumInput value={period.deliveries[ing.id] || 0} onChange={v => setStock("deliveries", ing.id, v)} style={{ width: 65 }} />
+                    </td>
+                    {/* Closing */}
+                    <td style={{ padding: "4px 8px", minWidth: 80 }}>
+                      <NumInput value={period.closingStock[ing.id] || ""} onChange={v => setStock("closingStock", ing.id, v)} style={{ width: 65 }} />
+                    </td>
+                    {/* Variance */}
+                    <td style={{ padding: "6px 8px", fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700, color: variance < -0.05 ? "#dc2626" : variance > 0.05 ? "#16a34a" : "#6b7280", whiteSpace: "nowrap" }}>
+                      {variance >= 0 ? "+" : ""}{variance.toFixed(2)}
+                    </td>
+                    {/* Status */}
+                    <td style={{ padding: "4px 8px" }}><StatusPill status={status} /></td>
+                    {/* Delete */}
+                    <td style={{ padding: "4px 8px", textAlign: "center" }}>
+                      <button onClick={() => deleteIng(ing.id)} title="Remove ingredient" style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16, lineHeight: 1, padding: "2px 4px" }}>×</button>
+                    </td>
+                  </tr>
+                )
+              }
+
+              // Normal (read) mode
               return (
-                <tr key={ing.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+                <tr key={ing.id} style={{ background: rowBg, borderBottom: "1px solid #f3f4f6" }}>
                   <td style={{ padding: "6px 12px", fontSize: 12, fontWeight: 500 }}>{ing.name}</td>
                   <td style={{ padding: "6px 12px" }}><CatPill category={ing.category} /></td>
                   <td style={{ padding: "4px 8px" }}>
@@ -689,7 +826,7 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
                     {variance >= 0 ? "+" : ""}{variance.toFixed(2)} {ing.purchaseUnit}
                   </td>
                   <td style={{ padding: "4px 8px" }}>
-                    <NumInput value={ing.par} onChange={v => setPar(ing.id, v)} style={{ width: 60 }} />
+                    <NumInput value={ing.par} onChange={v => updateIngField(ing.id, "par", v)} style={{ width: 60 }} />
                   </td>
                   <td style={{ padding: "6px 12px" }}><StatusPill status={status} /></td>
                 </tr>
