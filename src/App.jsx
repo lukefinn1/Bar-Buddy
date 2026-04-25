@@ -164,25 +164,100 @@ const toPurch = (ing, baseVal) => baseVal / ing.purchaseSize // recipe units →
 
 const costPerUnit = (ing) => ing.costPerPurchaseUnit / ing.purchaseSize
 
-const calcPourCost = (recipe, ingMap) => {
+// ── Batch helpers ─────────────────────────────────────────────────────────────
+
+// Get the most recent batch log entry for a batch id
+const getLatestRun = (batchId, batchLog) => {
+  const runs = (batchLog || []).filter(r => r.batchId === batchId)
+  return runs.length ? runs[runs.length - 1] : null
+}
+
+// Cost per ml of finished batch from a run (all input costs ÷ finalMl)
+const batchCostPerMl = (run, ingMap) => {
+  if (!run || !run.finalMl || run.finalMl <= 0) return 0
+  const totalCost = (run.inputs || []).reduce((s, inp) => {
+    const ing = ingMap[inp.id]
+    if (!ing) return s
+    return s + inp.qty * costPerUnit(ing)
+  }, 0)
+  return totalCost / run.finalMl
+}
+
+// True ingredient deduction per ml of finished batch consumed (liquid inputs only, proportional)
+const batchIngUsagePerMl = (run, ingMap) => {
+  if (!run || !run.finalMl || run.finalMl <= 0) return {}
+  const usage = {}
+  const liquidInputTotal = (run.inputs || []).reduce((s, inp) => {
+    const ing = ingMap[inp.id]
+    if (!ing) return s
+    return ing.recipeUnit === "ml" ? s + inp.qty : s
+  }, 0)
+  if (liquidInputTotal <= 0) return {}
+  ;(run.inputs || []).forEach(inp => {
+    const ing = ingMap[inp.id]
+    if (!ing) return
+    // All ingredients deducted proportionally by their share of total input qty
+    usage[inp.id] = (usage[inp.id] || 0) + (inp.qty / run.finalMl)
+  })
+  return usage
+}
+
+// Build a combined ingredient+batch lookup for recipe cost calc
+const calcPourCost = (recipe, ingMap, batchMap, batchLog) => {
   if (!recipe || !recipe.ingredients) return 0
   return recipe.ingredients.reduce((sum, ri) => {
+    if (ri.isBatch) {
+      const run = getLatestRun(ri.id, batchLog)
+      return sum + ri.qty * batchCostPerMl(run, ingMap)
+    }
     const ing = ingMap[ri.id]
     if (!ing) return sum
     return sum + ri.qty * costPerUnit(ing)
   }, 0)
 }
 
-const calcUsage = (monthlySales, recipes, ingMap) => {
+const calcUsage = (monthlySales, recipes, ingMap, batchMap, batchLog) => {
   const usage = {}
   Object.entries(monthlySales).forEach(([recipeId, qty]) => {
     const recipe = recipes.find(r => r.id === recipeId)
     if (!recipe) return
     recipe.ingredients.forEach(ri => {
-      usage[ri.id] = (usage[ri.id] || 0) + ri.qty * qty
+      if (ri.isBatch) {
+        // Deduct raw ingredients through the batch at latest-run proportions
+        const run = getLatestRun(ri.id, batchLog)
+        if (!run) return
+        const perMl = batchIngUsagePerMl(run, ingMap)
+        Object.entries(perMl).forEach(([ingId, perMlQty]) => {
+          usage[ingId] = (usage[ingId] || 0) + perMlQty * ri.qty * qty
+        })
+      } else {
+        usage[ri.id] = (usage[ri.id] || 0) + ri.qty * qty
+      }
     })
   })
   return usage
+}
+
+// Batch stock: theoretical remaining in ml
+const calcBatchTheoClose = (batch, period, monthlySales, recipes) => {
+  const openMl = period.batchOpeningStock?.[batch.id] || 0
+  // sum of ml consumed by all recipes that use this batch
+  let usedMl = 0
+  recipes.forEach(r => {
+    const sold = monthlySales[r.id] || 0
+    if (!sold) return
+    r.ingredients.forEach(ri => {
+      if (ri.isBatch && ri.id === batch.id) usedMl += ri.qty * sold
+    })
+  })
+  return openMl - usedMl
+}
+
+const getBatchStatus = (batch, theoMl) => {
+  if (theoMl >= batch.parMl) return "Above Par"
+  if (theoMl >= batch.parMl * 0.8) return "At Par"
+  if (theoMl > 0) return "Low — Make Soon"
+  return "Out of Stock"
 }
 
 const calcTheoClose = (ingredients, openingStock, deliveries, usage) => {
@@ -289,10 +364,16 @@ export default function App() {
       try {
         const libRes = await window.storage.get("bb-v1-lib")
         const perRes = await window.storage.get("bb-v1-period")
-        setLib(libRes ? JSON.parse(libRes.value) : { ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES })
-        setPeriod(perRes ? JSON.parse(perRes.value) : defaultPeriod())
+        const loadedLib = libRes ? JSON.parse(libRes.value) : { ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES, batches: [] }
+        if (!loadedLib.batches) loadedLib.batches = []
+        setLib(loadedLib)
+        const loadedPeriod = perRes ? JSON.parse(perRes.value) : defaultPeriod()
+        if (!loadedPeriod.batchOpeningStock) loadedPeriod.batchOpeningStock = {}
+        if (!loadedPeriod.batchClosingStock) loadedPeriod.batchClosingStock = {}
+        if (!loadedPeriod.batchLog) loadedPeriod.batchLog = []
+        setPeriod(loadedPeriod)
       } catch {
-        setLib({ ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES })
+        setLib({ ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES, batches: [] })
         setPeriod(defaultPeriod())
       }
     }
@@ -301,6 +382,7 @@ export default function App() {
 
   const defaultPeriod = () => ({
     openingStock: {}, deliveries: {}, closingStock: {},
+    batchOpeningStock: {}, batchClosingStock: {}, batchLog: [],
     monthlySales: {}, weeklyLog: [],
     monthStart: new Date().toISOString().slice(0, 10),
     weekNum: 1,
@@ -338,8 +420,9 @@ export default function App() {
   if (!lib || !period) return <div style={{ padding: 40, fontFamily: "Inter, sans-serif", color: "#374151" }}>Loading Bar Buddy…</div>
 
   const ingMap = Object.fromEntries(lib.ingredients.map(i => [i.id, i]))
-  const recipeMap = Object.fromEntries(lib.recipes.map(r => [r.id, r]))
-  const usage = calcUsage(period.monthlySales, lib.recipes, ingMap)
+  const batchMap = Object.fromEntries((lib.batches || []).map(b => [b.id, b]))
+  const batchLog = period.batchLog || []
+  const usage = calcUsage(period.monthlySales, lib.recipes, ingMap, batchMap, batchLog)
   const theoClose = calcTheoClose(lib.ingredients, period.openingStock, period.deliveries, usage)
 
   const getStatus = (ing) => {
@@ -377,9 +460,16 @@ export default function App() {
         newOpening[ing.id] = baseToCount(ing, theoClose[ing.id] || 0)
       }
     })
+    const newBatchOpening = {}
+    ;(lib.batches || []).forEach(b => {
+      const closing = period.batchClosingStock?.[b.id]
+      newBatchOpening[b.id] = closing !== undefined ? closing : Math.max(0, calcBatchTheoClose(b, period, period.monthlySales, lib.recipes))
+    })
     updatePeriod({
       openingStock: newOpening,
       deliveries: {}, closingStock: {},
+      batchOpeningStock: newBatchOpening,
+      batchClosingStock: {}, batchLog: [],
       monthlySales: {}, weeklyLog: [],
       monthStart: new Date().toISOString().slice(0, 10),
       weekNum: 1,
@@ -388,7 +478,6 @@ export default function App() {
   }
 
   const hasPendingWeek = Object.keys(weekSales).some(k => weekSales[k] > 0)
-
   const monthName = new Date(period.monthStart).toLocaleString("default", { month: "long", year: "numeric" })
 
   // ── Layout ──
@@ -404,9 +493,10 @@ export default function App() {
           {[
             ["dashboard", "Dashboard"],
             ["inventory", "Inventory"],
-            ["recipes", "Recipes"],
-            ["sales", "Sales"],
-            ["orders", "Orders"],
+            ["batches",   "Batches"],
+            ["recipes",   "Recipes"],
+            ["sales",     "Sales"],
+            ["orders",    "Orders"],
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} style={{
               display: "block", width: "100%", textAlign: "left",
@@ -435,10 +525,11 @@ export default function App() {
 
       {/* Main */}
       <main style={{ flex: 1, overflow: "auto" }}>
-        {tab === "dashboard" && <DashboardPage lib={lib} period={period} ingMap={ingMap} usage={usage} theoClose={theoClose} getStatus={getStatus} setTab={setTab} />}
+        {tab === "dashboard" && <DashboardPage lib={lib} period={period} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} usage={usage} theoClose={theoClose} getStatus={getStatus} setTab={setTab} />}
         {tab === "inventory" && <InventoryPage lib={lib} period={period} ingMap={ingMap} theoClose={theoClose} usage={usage} getStatus={getStatus} updatePeriod={updatePeriod} updateLib={updateLib} />}
-        {tab === "recipes"   && <RecipesPage lib={lib} ingMap={ingMap} updateLib={updateLib} />}
-        {tab === "sales"     && <SalesPage lib={lib} period={period} ingMap={ingMap} weekSales={weekSales} setWeekSales={setWeekSales} logWeek={logWeek} />}
+        {tab === "batches"   && <BatchesPage lib={lib} period={period} ingMap={ingMap} batchLog={batchLog} updateLib={updateLib} updatePeriod={updatePeriod} />}
+        {tab === "recipes"   && <RecipesPage lib={lib} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} updateLib={updateLib} />}
+        {tab === "sales"     && <SalesPage lib={lib} period={period} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} weekSales={weekSales} setWeekSales={setWeekSales} logWeek={logWeek} />}
         {tab === "orders"    && <OrdersPage lib={lib} theoClose={theoClose} ingMap={ingMap} />}
       </main>
     </div>
@@ -447,9 +538,9 @@ export default function App() {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
-function DashboardPage({ lib, period, ingMap, usage, theoClose, getStatus, setTab }) {
+function DashboardPage({ lib, period, ingMap, batchMap, batchLog, usage, theoClose, getStatus, setTab }) {
   const totalRevenue = lib.recipes.reduce((sum, r) => sum + r.salePrice * (period.monthlySales[r.id] || 0), 0)
-  const totalPourCost = lib.recipes.reduce((sum, r) => sum + calcPourCost(r, ingMap) * (period.monthlySales[r.id] || 0), 0)
+  const totalPourCost = lib.recipes.reduce((sum, r) => sum + calcPourCost(r, ingMap, batchMap, batchLog) * (period.monthlySales[r.id] || 0), 0)
   const grossProfit = totalRevenue - totalPourCost
   const avgMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
 
@@ -458,13 +549,19 @@ function DashboardPage({ lib, period, ingMap, usage, theoClose, getStatus, setTa
     return s === "Order Needed" || s === "Critical"
   })
 
+  // Batch alerts
+  const batchAlerts = (lib.batches || []).filter(b => {
+    const theoMl = calcBatchTheoClose(b, period, period.monthlySales, lib.recipes)
+    const s = getBatchStatus(b, theoMl)
+    return s === "Low — Make Soon" || s === "Out of Stock"
+  })
+
   const recipeMargins = lib.recipes.map(r => {
-    const pc = calcPourCost(r, ingMap)
+    const pc = calcPourCost(r, ingMap, batchMap, batchLog)
     const gp = r.salePrice - pc
     const margin = r.salePrice > 0 ? (gp / r.salePrice) * 100 : 0
     return { ...r, pourCost: pc, grossProfit: gp, margin }
-  }).filter(r => (period.monthlySales[r.id] || 0) > 0 || true)
-    .sort((a, b) => b.margin - a.margin)
+  }).sort((a, b) => b.margin - a.margin)
 
   const top5 = recipeMargins.slice(0, 5)
   const bot5 = [...recipeMargins].reverse().slice(0, 5)
@@ -481,7 +578,7 @@ function DashboardPage({ lib, period, ingMap, usage, theoClose, getStatus, setTa
     { label: "Gross Profit",  value: `$${grossProfit.toFixed(2)}`, sub: "this month" },
     { label: "Avg Margin",    value: `${avgMargin.toFixed(1)}%`, sub: "across menu" },
     { label: "Order Alerts",  value: orderNeeded.length, sub: "items below par" },
-    { label: "Current Week",  value: `Week ${period.weekNum}`, sub: "of month" },
+    { label: "Batch Alerts",  value: batchAlerts.length, sub: "batches low/out", warn: batchAlerts.length > 0 },
   ]
 
   return (
@@ -490,13 +587,22 @@ function DashboardPage({ lib, period, ingMap, usage, theoClose, getStatus, setTa
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 24 }}>
         {kpis.map(k => (
-          <div key={k.label} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "12px 14px" }}>
+          <div key={k.label} style={{ background: "#fff", border: `1px solid ${k.warn ? "#fca5a5" : "#e5e7eb"}`, borderRadius: 6, padding: "12px 14px" }}>
             <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 4 }}>{k.label}</div>
-            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 18, fontWeight: 700, color: "#111827" }}>{k.value}</div>
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 18, fontWeight: 700, color: k.warn ? "#dc2626" : "#111827" }}>{k.value}</div>
             <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{k.sub}</div>
           </div>
         ))}
       </div>
+
+      {/* Batch Alerts banner */}
+      {batchAlerts.length > 0 && (
+        <div style={{ marginBottom: 20, background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#c2410c" }}>⚠ {batchAlerts.length} batch{batchAlerts.length > 1 ? "es" : ""} need making:</span>
+          <span style={{ fontSize: 12, color: "#9a3412" }}>{batchAlerts.map(b => b.name).join(", ")}</span>
+          <button onClick={() => setTab("batches")} style={{ marginLeft: "auto", fontSize: 11, color: "#c2410c", background: "none", border: "none", cursor: "pointer" }}>Go to Batches →</button>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
         {/* Order Alerts */}
@@ -839,9 +945,402 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
   )
 }
 
+// ─── BATCHES ──────────────────────────────────────────────────────────────────
+
+const BATCH_METHOD_TAGS = ["Premix","Fat Wash","Clarified","Carbonated","Infusion","Other"]
+
+function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod }) {
+  const [subTab, setSubTab] = useState("stock")
+  const [showNewBatch, setShowNewBatch] = useState(false)
+  const [logBatch, setLogBatch] = useState(null)  // batch being logged
+
+  const batches = lib.batches || []
+
+  const addBatch = (b) => {
+    updateLib(prev => ({ ...prev, batches: [...(prev.batches || []), b] }))
+    setShowNewBatch(false)
+  }
+
+  const deleteBatch = (id) => {
+    if (!window.confirm("Delete this batch? This cannot be undone.")) return
+    updateLib(prev => ({ ...prev, batches: (prev.batches || []).filter(b => b.id !== id) }))
+  }
+
+  const saveRun = (run) => {
+    updatePeriod(prev => ({ ...prev, batchLog: [...(prev.batchLog || []), run] }))
+    setLogBatch(null)
+  }
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <PageTitle title="Batches">
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setShowNewBatch(true)} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer" }}>
+            + New Batch
+          </button>
+        </div>
+      </PageTitle>
+
+      {/* Sub-tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+        {[["stock","Batch Stock"],["log","Production Log"],["library","Batch Library"]].map(([id, label]) => (
+          <button key={id} onClick={() => setSubTab(id)} style={{
+            padding: "5px 16px", fontSize: 12, borderRadius: 4, cursor: "pointer",
+            background: subTab === id ? "#111827" : "#fff",
+            color: subTab === id ? "#fff" : "#374151",
+            border: `1px solid ${subTab === id ? "#111827" : "#d1d5db"}`,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {showNewBatch && <NewBatchModal ingredients={lib.ingredients} ingMap={ingMap} onSave={addBatch} onClose={() => setShowNewBatch(false)} />}
+      {logBatch && <BatchRunModal batch={logBatch} ingredients={lib.ingredients} ingMap={ingMap} onSave={saveRun} onClose={() => setLogBatch(null)} />}
+
+      {/* BATCH STOCK tab */}
+      {subTab === "stock" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Batch Name","Method","Par (ml)","Opening (ml)","Closing (ml)","Theoretical (ml)","Variance (ml)","Status",""].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {batches.map((batch, i) => {
+                const theoMl = calcBatchTheoClose(batch, period, period.monthlySales, lib.recipes)
+                const closingMl = period.batchClosingStock?.[batch.id] ?? ""
+                const actualMl = closingMl !== "" ? parseFloat(closingMl) || 0 : null
+                const variance = actualMl !== null ? actualMl - theoMl : null
+                const status = getBatchStatus(batch, theoMl)
+                const latestRun = getLatestRun(batch.id, batchLog)
+                const cpml = batchCostPerMl(latestRun, ingMap)
+                return (
+                  <tr key={batch.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "7px 12px" }}>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>{batch.name}</div>
+                      {cpml > 0 && <div style={{ fontSize: 10, color: "#6b7280" }}>${cpml.toFixed(4)}/ml (latest run)</div>}
+                    </td>
+                    <td style={{ padding: "7px 12px" }}>
+                      <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: "#f3f4f6", color: "#374151", fontWeight: 500 }}>{batch.method}</span>
+                    </td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{batch.parMl}</td>
+                    <td style={{ padding: "4px 8px" }}>
+                      <NumInput
+                        value={period.batchOpeningStock?.[batch.id] || 0}
+                        onChange={v => updatePeriod(prev => ({ ...prev, batchOpeningStock: { ...prev.batchOpeningStock, [batch.id]: v } }))}
+                        style={{ width: 72 }}
+                      />
+                    </td>
+                    <td style={{ padding: "4px 8px" }}>
+                      <NumInput
+                        value={period.batchClosingStock?.[batch.id] || ""}
+                        onChange={v => updatePeriod(prev => ({ ...prev, batchClosingStock: { ...prev.batchClosingStock, [batch.id]: v } }))}
+                        style={{ width: 72 }}
+                      />
+                    </td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{theoMl.toFixed(0)}</td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700,
+                      color: variance === null ? "#9ca3af" : variance < -50 ? "#dc2626" : variance > 50 ? "#16a34a" : "#6b7280" }}>
+                      {variance === null ? "—" : `${variance >= 0 ? "+" : ""}${variance.toFixed(0)}`}
+                    </td>
+                    <td style={{ padding: "7px 12px" }}>
+                      <BatchStatusPill status={status} />
+                    </td>
+                    <td style={{ padding: "7px 8px" }}>
+                      <button onClick={() => setLogBatch(batch)} style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #111827", borderRadius: 4, background: "#111827", color: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>
+                        Log Run
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+              {batches.length === 0 && (
+                <tr><td colSpan={9} style={{ padding: "32px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+                  No batches yet — click "New Batch" to create one
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* PRODUCTION LOG tab */}
+      {subTab === "log" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Date","Batch","Inputs","Final Yield (ml)","Yield %","Cost/ml","Total Cost"].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...(batchLog || [])].reverse().map((run, i) => {
+                const batch = (lib.batches || []).find(b => b.id === run.batchId)
+                const totalLiquidIn = (run.inputs || []).reduce((s, inp) => {
+                  const ing = ingMap[inp.id]
+                  return ing?.recipeUnit === "ml" ? s + inp.qty : s
+                }, 0)
+                const yieldPct = totalLiquidIn > 0 ? (run.finalMl / totalLiquidIn) * 100 : 0
+                const cpml = batchCostPerMl(run, ingMap)
+                const totalCost = cpml * run.finalMl
+                return (
+                  <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "7px 12px", fontSize: 12 }}>{run.date}</td>
+                    <td style={{ padding: "7px 12px", fontSize: 12, fontWeight: 600 }}>{batch?.name || run.batchId}</td>
+                    <td style={{ padding: "7px 12px", fontSize: 11, color: "#6b7280", maxWidth: 220 }}>
+                      {(run.inputs || []).map(inp => {
+                        const ing = ingMap[inp.id]
+                        return ing ? `${inp.qty}${ing.recipeUnit} ${ing.name}` : null
+                      }).filter(Boolean).join(", ")}
+                    </td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{run.finalMl}ml</td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: yieldPct >= 85 ? "#16a34a" : yieldPct >= 70 ? "#d97706" : "#dc2626" }}>
+                      {yieldPct.toFixed(1)}%
+                    </td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${cpml.toFixed(4)}</td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 600 }}>${totalCost.toFixed(2)}</td>
+                  </tr>
+                )
+              })}
+              {(!batchLog || batchLog.length === 0) && (
+                <tr><td colSpan={7} style={{ padding: "32px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No batch runs logged yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* LIBRARY tab */}
+      {subTab === "library" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Batch Name","Method","Par (ml)","Default Inputs","Used In",""].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {batches.map((batch, i) => {
+                const usedIn = lib.recipes.filter(r => r.ingredients.some(ri => ri.isBatch && ri.id === batch.id))
+                return (
+                  <tr key={batch.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "7px 12px", fontSize: 12, fontWeight: 600 }}>{batch.name}</td>
+                    <td style={{ padding: "7px 12px" }}>
+                      <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: "#f3f4f6", fontWeight: 500 }}>{batch.method}</span>
+                    </td>
+                    <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{batch.parMl}ml</td>
+                    <td style={{ padding: "7px 12px", fontSize: 11, color: "#6b7280" }}>
+                      {(batch.defaultInputs || []).map(inp => {
+                        const ing = ingMap[inp.id]
+                        return ing ? `${inp.qty}${ing.recipeUnit} ${ing.name}` : null
+                      }).filter(Boolean).join(", ") || "—"}
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: 11, color: "#374151" }}>
+                      {usedIn.length ? usedIn.map(r => r.name).join(", ") : <span style={{ color: "#9ca3af" }}>Not used in any recipe</span>}
+                    </td>
+                    <td style={{ padding: "7px 8px", textAlign: "center" }}>
+                      <button onClick={() => deleteBatch(batch.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16 }}>×</button>
+                    </td>
+                  </tr>
+                )
+              })}
+              {batches.length === 0 && (
+                <tr><td colSpan={6} style={{ padding: "32px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No batches defined yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BatchStatusPill({ status }) {
+  const map = {
+    "Above Par":     { bg: "#dcfce7", text: "#166534", border: "#86efac" },
+    "At Par":        { bg: "#dbeafe", text: "#1e40af", border: "#93c5fd" },
+    "Low — Make Soon":{ bg: "#fef9c3", text: "#854d0e", border: "#fde047" },
+    "Out of Stock":  { bg: "#fee2e2", text: "#991b1b", border: "#fca5a5" },
+  }
+  const s = map[status] || map["Above Par"]
+  return <span style={{ display:"inline-block", padding:"1px 7px", borderRadius:10, fontSize:11, fontWeight:600, background:s.bg, color:s.text, border:`1px solid ${s.border}` }}>{status}</span>
+}
+
+function NewBatchModal({ ingredients, ingMap, onSave, onClose }) {
+  const [name, setName] = useState("")
+  const [method, setMethod] = useState("Premix")
+  const [parMl, setParMl] = useState("1000")
+  const [inputs, setInputs] = useState([{ id: ingredients[0]?.id || "", qty: 0 }])
+
+  const addInput = () => setInputs(p => [...p, { id: ingredients[0]?.id || "", qty: 0 }])
+  const removeInput = (i) => setInputs(p => p.filter((_, idx) => idx !== i))
+  const updateInput = (i, field, val) => setInputs(p => p.map((inp, idx) => idx === i ? { ...inp, [field]: val } : inp))
+
+  const handleSave = () => {
+    if (!name.trim()) return
+    onSave({
+      id: "batch_" + Date.now(),
+      name: name.trim(), method,
+      parMl: parseFloat(parMl) || 1000,
+      defaultInputs: inputs.filter(i => i.qty > 0),
+    })
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "#fff", borderRadius: 8, width: 520, maxHeight: "85vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>New Batch</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280" }}>×</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px", gap: 12, marginBottom: 16 }}>
+            <div style={{ gridColumn: "1/2" }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>BATCH NAME</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fat Washed Chivas"
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>METHOD</label>
+              <select value={method} onChange={e => setMethod(e.target.value)}
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13 }}>
+                {BATCH_METHOD_TAGS.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>PAR (ml)</label>
+              <input type="text" inputMode="decimal" value={parMl} onChange={e => setParMl(e.target.value)}
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13, fontFamily: "JetBrains Mono, monospace" }} />
+            </div>
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 8 }}>DEFAULT INPUTS (pre-filled when logging a run)</div>
+          {inputs.map((inp, idx) => (
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
+              <select value={inp.id} onChange={e => updateInput(idx, "id", e.target.value)}
+                style={{ flex: 1, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12 }}>
+                {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
+              </select>
+              <input type="text" inputMode="decimal" value={inp.qty} onChange={e => updateInput(idx, "qty", parseFloat(e.target.value) || 0)}
+                style={{ width: 80, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12, fontFamily: "JetBrains Mono, monospace", textAlign: "right" }} />
+              <span style={{ fontSize: 11, color: "#9ca3af", width: 24 }}>{ingMap[inp.id]?.recipeUnit}</span>
+              <button onClick={() => removeInput(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16 }}>×</button>
+            </div>
+          ))}
+          <button onClick={addInput} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "1px dashed #93c5fd", borderRadius: 4, padding: "4px 12px", cursor: "pointer", marginTop: 4, marginBottom: 20 }}>
+            + Add ingredient
+          </button>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button onClick={onClose} style={{ padding: "7px 16px", border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+            <button onClick={handleSave} style={{ padding: "7px 16px", border: "none", borderRadius: 5, background: "#111827", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Create Batch</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BatchRunModal({ batch, ingredients, ingMap, onSave, onClose }) {
+  const [inputs, setInputs] = useState(
+    (batch.defaultInputs || []).length > 0
+      ? batch.defaultInputs.map(i => ({ ...i }))
+      : [{ id: ingredients[0]?.id || "", qty: 0 }]
+  )
+  const [finalMl, setFinalMl] = useState("")
+  const date = new Date().toISOString().slice(0, 10)
+
+  const addInput = () => setInputs(p => [...p, { id: ingredients[0]?.id || "", qty: 0 }])
+  const removeInput = (i) => setInputs(p => p.filter((_, idx) => idx !== i))
+  const updateInput = (i, field, val) => setInputs(p => p.map((inp, idx) => idx === i ? { ...inp, [field]: val } : inp))
+
+  const totalLiquidIn = inputs.reduce((s, inp) => {
+    const ing = ingMap[inp.id]
+    return ing?.recipeUnit === "ml" ? s + (parseFloat(inp.qty) || 0) : s
+  }, 0)
+  const outMl = parseFloat(finalMl) || 0
+  const yieldPct = totalLiquidIn > 0 && outMl > 0 ? (outMl / totalLiquidIn * 100).toFixed(1) : "—"
+
+  const totalCostCalc = inputs.reduce((s, inp) => {
+    const ing = ingMap[inp.id]
+    if (!ing) return s
+    return s + (parseFloat(inp.qty) || 0) * costPerUnit(ing)
+  }, 0)
+  const cpml = outMl > 0 ? (totalCostCalc / outMl) : 0
+
+  const handleSave = () => {
+    if (!outMl) return
+    onSave({
+      batchId: batch.id,
+      date,
+      inputs: inputs.filter(i => parseFloat(i.qty) > 0).map(i => ({ ...i, qty: parseFloat(i.qty) || 0 })),
+      finalMl: outMl,
+    })
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "#fff", borderRadius: 8, width: 520, maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>Log Batch Run — {batch.name}</div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{date} · {batch.method}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280" }}>×</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 8 }}>WHAT WENT IN</div>
+          {inputs.map((inp, idx) => (
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
+              <select value={inp.id} onChange={e => updateInput(idx, "id", e.target.value)}
+                style={{ flex: 1, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12 }}>
+                {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
+              </select>
+              <input type="text" inputMode="decimal" value={inp.qty}
+                onChange={e => updateInput(idx, "qty", e.target.value)}
+                onFocus={e => e.target.select()}
+                style={{ width: 88, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12, fontFamily: "JetBrains Mono, monospace", textAlign: "right" }} />
+              <span style={{ fontSize: 11, color: "#9ca3af", width: 28 }}>{ingMap[inp.id]?.recipeUnit}</span>
+              <button onClick={() => removeInput(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16 }}>×</button>
+            </div>
+          ))}
+          <button onClick={addInput} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "1px dashed #93c5fd", borderRadius: 4, padding: "4px 12px", cursor: "pointer", marginBottom: 20 }}>
+            + Add ingredient
+          </button>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 6 }}>FINAL LIQUID OUT (ml)</label>
+            <input type="text" inputMode="decimal" value={finalMl} onChange={e => setFinalMl(e.target.value)} placeholder="e.g. 1200"
+              style={{ width: 160, padding: "7px 10px", border: "2px solid #111827", borderRadius: 4, fontSize: 14, fontFamily: "JetBrains Mono, monospace", fontWeight: 700 }} />
+          </div>
+
+          {/* Live yield preview */}
+          <div style={{ background: "#f9fafb", borderRadius: 6, padding: "12px 16px", display: "flex", gap: 28, marginBottom: 20 }}>
+            <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>LIQUID IN</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14 }}>{totalLiquidIn}ml</div></div>
+            <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>YIELD</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14, color: yieldPct !== "—" && parseFloat(yieldPct) < 70 ? "#dc2626" : "#111827" }}>{yieldPct}{yieldPct !== "—" ? "%" : ""}</div></div>
+            <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>TOTAL COST</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14 }}>${totalCostCalc.toFixed(2)}</div></div>
+            <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>COST/ml</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14, color: "#7c3aed" }}>${cpml.toFixed(4)}</div></div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button onClick={onClose} style={{ padding: "7px 16px", border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+            <button onClick={handleSave} disabled={!outMl} style={{ padding: "7px 16px", border: "none", borderRadius: 5, background: outMl ? "#111827" : "#d1d5db", color: "#fff", cursor: outMl ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}>
+              Save Run
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── RECIPES ──────────────────────────────────────────────────────────────────
 
-function RecipesPage({ lib, ingMap, updateLib }) {
+function RecipesPage({ lib, ingMap, batchMap, batchLog, updateLib }) {
   const [subTab, setSubTab] = useState("specs")
   const [search, setSearch] = useState("")
   const [expanded, setExpanded] = useState({})
@@ -876,8 +1375,102 @@ function RecipesPage({ lib, ingMap, updateLib }) {
       </div>
 
       {editing && (
-        <EditRecipeModal recipe={editing} ingredients={lib.ingredients} ingMap={ingMap} onSave={saveRecipe} onClose={() => setEditing(null)} />
+        <EditRecipeModal recipe={editing} ingredients={lib.ingredients} batches={lib.batches || []} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} onSave={saveRecipe} onClose={() => setEditing(null)} />
       )}
+
+      {subTab === "specs" && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {["Name","Category","Sale Price","Pour Cost","GP","Margin %",""].map(h => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((recipe, i) => {
+                const pc = calcPourCost(recipe, ingMap, batchMap, batchLog)
+                const gp = recipe.salePrice - pc
+                const margin = recipe.salePrice > 0 ? (gp / recipe.salePrice) * 100 : 0
+                return (
+                  <>
+                    <tr key={recipe.id} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }} onClick={() => toggleExpand(recipe.id)}>
+                      <td style={{ padding: "7px 12px", fontSize: 12, fontWeight: 500 }}>
+                        <span style={{ marginRight: 6, color: "#9ca3af" }}>{expanded[recipe.id] ? "▼" : "▶"}</span>
+                        {recipe.name}
+                      </td>
+                      <td style={{ padding: "7px 12px" }}><CatPill category={recipe.category} /></td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${recipe.salePrice.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${pc.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${gp.toFixed(2)}</td>
+                      <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: margin >= 60 ? "#16a34a" : margin >= 40 ? "#d97706" : "#dc2626" }}>
+                        {margin.toFixed(1)}%
+                      </td>
+                      <td style={{ padding: "7px 12px" }}>
+                        <button onClick={e => { e.stopPropagation(); setEditing(recipe) }} style={{ fontSize: 11, padding: "2px 8px", border: "1px solid #d1d5db", borderRadius: 4, background: "#fff", cursor: "pointer" }}>Edit</button>
+                      </td>
+                    </tr>
+                    {expanded[recipe.id] && (
+                      <tr key={recipe.id + "-exp"}>
+                        <td colSpan={7} style={{ padding: "0 12px 12px 32px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                          <table style={{ borderCollapse: "collapse", marginTop: 8 }}>
+                            <thead>
+                              <tr>
+                                {["Ingredient","Qty","Unit","Cost"].map(h => (
+                                  <th key={h} style={{ padding: "4px 12px", textAlign: "left", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {recipe.ingredients.map(ri => {
+                                if (ri.isBatch) {
+                                  const batch = batchMap[ri.id]
+                                  const run = getLatestRun(ri.id, batchLog)
+                                  const cpml = batchCostPerMl(run, ingMap)
+                                  return (
+                                    <tr key={ri.id}>
+                                      <td style={{ padding: "3px 12px", fontSize: 12 }}>
+                                        <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, background: "#ede9fe", color: "#5b21b6", fontWeight: 600, marginRight: 6 }}>BATCH</span>
+                                        {batch?.name || ri.id}
+                                      </td>
+                                      <td style={{ padding: "3px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{ri.qty}</td>
+                                      <td style={{ padding: "3px 12px", fontSize: 12, color: "#6b7280" }}>ml</td>
+                                      <td style={{ padding: "3px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${(ri.qty * cpml).toFixed(4)}</td>
+                                    </tr>
+                                  )
+                                }
+                                const ing = ingMap[ri.id]
+                                if (!ing) return null
+                                const cost = ri.qty * costPerUnit(ing)
+                                return (
+                                  <tr key={ri.id}>
+                                    <td style={{ padding: "3px 12px", fontSize: 12 }}>{ing.name}</td>
+                                    <td style={{ padding: "3px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{ri.qty}</td>
+                                    <td style={{ padding: "3px 12px", fontSize: 12, color: "#6b7280" }}>{ing.recipeUnit}</td>
+                                    <td style={{ padding: "3px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${cost.toFixed(4)}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {subTab === "margins" && (
+        <MarginsTab recipes={lib.recipes} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} />
+      )}
+    </div>
+  )
+}
 
       {subTab === "specs" && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
@@ -957,7 +1550,7 @@ function RecipesPage({ lib, ingMap, updateLib }) {
   )
 }
 
-function EditRecipeModal({ recipe, ingredients, ingMap, onSave, onClose }) {
+function EditRecipeModal({ recipe, ingredients, batches, ingMap, batchMap, batchLog, onSave, onClose }) {
   const [name, setName] = useState(recipe.name)
   const [salePrice, setSalePrice] = useState(String(recipe.salePrice))
   const [category, setCategory] = useState(recipe.category)
@@ -966,8 +1559,15 @@ function EditRecipeModal({ recipe, ingredients, ingMap, onSave, onClose }) {
   const updateIngQty = (idx, val) => {
     setIngs(prev => prev.map((item, i) => i === idx ? { ...item, qty: parseFloat(val) || 0 } : item))
   }
+  const updateIngId = (idx, val, isBatch) => {
+    setIngs(prev => prev.map((item, i) => i === idx ? { ...item, id: val, isBatch: isBatch || false } : item))
+  }
   const removeIng = (idx) => setIngs(prev => prev.filter((_, i) => i !== idx))
-  const addIng = () => setIngs(prev => [...prev, { id: ingredients[0].id, qty: 0 }])
+  const addIng = () => setIngs(prev => [...prev, { id: ingredients[0]?.id || "", qty: 0, isBatch: false }])
+  const addBatchIng = () => {
+    if (!batches.length) return
+    setIngs(prev => [...prev, { id: batches[0].id, qty: 0, isBatch: true }])
+  }
 
   const handleSave = () => {
     const price = parseFloat(salePrice)
@@ -976,6 +1576,10 @@ function EditRecipeModal({ recipe, ingredients, ingMap, onSave, onClose }) {
   }
 
   const pourCost = ings.reduce((s, ri) => {
+    if (ri.isBatch) {
+      const run = getLatestRun(ri.id, batchLog)
+      return s + ri.qty * batchCostPerMl(run, ingMap)
+    }
     const ing = ingMap[ri.id]
     return ing ? s + ri.qty * costPerUnit(ing) : s
   }, 0)
@@ -990,7 +1594,6 @@ function EditRecipeModal({ recipe, ingredients, ingMap, onSave, onClose }) {
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280" }}>×</button>
         </div>
         <div style={{ padding: "20px" }}>
-          {/* Name + Price */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
             <div style={{ gridColumn: "1/3" }}>
               <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>NAME</label>
@@ -1011,27 +1614,42 @@ function EditRecipeModal({ recipe, ingredients, ingMap, onSave, onClose }) {
             </select>
           </div>
 
-          {/* Ingredients */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 8 }}>INGREDIENTS</div>
             {ings.map((ri, idx) => (
               <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-                <select value={ri.id} onChange={e => setIngs(prev => prev.map((item, i) => i === idx ? { ...item, id: e.target.value } : item))}
-                  style={{ flex: 1, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12 }}>
-                  {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
-                </select>
+                {ri.isBatch ? (
+                  <>
+                    <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 8, background: "#ede9fe", color: "#5b21b6", fontWeight: 600, whiteSpace: "nowrap" }}>BATCH</span>
+                    <select value={ri.id} onChange={e => updateIngId(idx, e.target.value, true)}
+                      style={{ flex: 1, padding: "5px 8px", border: "1px solid #c4b5fd", borderRadius: 4, fontSize: 12 }}>
+                      {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </>
+                ) : (
+                  <select value={ri.id} onChange={e => updateIngId(idx, e.target.value, false)}
+                    style={{ flex: 1, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12 }}>
+                    {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
+                  </select>
+                )}
                 <input type="text" inputMode="decimal" value={ri.qty} onChange={e => updateIngQty(idx, e.target.value)}
                   style={{ width: 70, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12, fontFamily: "JetBrains Mono, monospace", textAlign: "right" }} />
-                <span style={{ fontSize: 11, color: "#9ca3af", width: 24 }}>{ingMap[ri.id]?.recipeUnit}</span>
+                <span style={{ fontSize: 11, color: "#9ca3af", width: 24 }}>{ri.isBatch ? "ml" : ingMap[ri.id]?.recipeUnit}</span>
                 <button onClick={() => removeIng(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16, lineHeight: 1 }}>×</button>
               </div>
             ))}
-            <button onClick={addIng} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "1px dashed #93c5fd", borderRadius: 4, padding: "4px 12px", cursor: "pointer", marginTop: 4 }}>
-              + Add ingredient
-            </button>
+            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+              <button onClick={addIng} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "1px dashed #93c5fd", borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>
+                + Ingredient
+              </button>
+              {batches.length > 0 && (
+                <button onClick={addBatchIng} style={{ fontSize: 12, color: "#5b21b6", background: "none", border: "1px dashed #c4b5fd", borderRadius: 4, padding: "4px 12px", cursor: "pointer" }}>
+                  + Batch
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Live cost preview */}
           <div style={{ background: "#f9fafb", borderRadius: 6, padding: "10px 14px", display: "flex", gap: 24, marginBottom: 20 }}>
             <div><span style={{ fontSize: 11, color: "#6b7280" }}>Pour Cost </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700 }}>${pourCost.toFixed(2)}</span></div>
             <div><span style={{ fontSize: 11, color: "#6b7280" }}>GP </span><span style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700 }}>${(price - pourCost).toFixed(2)}</span></div>
@@ -1048,9 +1666,9 @@ function EditRecipeModal({ recipe, ingredients, ingMap, onSave, onClose }) {
   )
 }
 
-function MarginsTab({ recipes, ingMap }) {
+function MarginsTab({ recipes, ingMap, batchMap, batchLog }) {
   const rows = recipes.map(r => {
-    const pc = calcPourCost(r, ingMap)
+    const pc = calcPourCost(r, ingMap, batchMap, batchLog)
     const gp = r.salePrice - pc
     const margin = r.salePrice > 0 ? (gp / r.salePrice) * 100 : 0
     return { ...r, pourCost: pc, grossProfit: gp, margin }
@@ -1099,7 +1717,7 @@ function MarginsTab({ recipes, ingMap }) {
 
 // ─── SALES ────────────────────────────────────────────────────────────────────
 
-function SalesPage({ lib, period, ingMap, weekSales, setWeekSales, logWeek }) {
+function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeekSales, logWeek }) {
   const [subTab, setSubTab] = useState("week")
   const [search, setSearch] = useState("")
   const [expandedWeek, setExpandedWeek] = useState({})
@@ -1108,7 +1726,7 @@ function SalesPage({ lib, period, ingMap, weekSales, setWeekSales, logWeek }) {
   const filtered = lib.recipes.filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()))
 
   const weekRevenue = lib.recipes.reduce((s, r) => s + r.salePrice * (weekSales[r.id] || 0), 0)
-  const weekPourCost = lib.recipes.reduce((s, r) => s + calcPourCost(r, ingMap) * (weekSales[r.id] || 0), 0)
+  const weekPourCost = lib.recipes.reduce((s, r) => s + calcPourCost(r, ingMap, batchMap, batchLog) * (weekSales[r.id] || 0), 0)
   const weekGP = weekRevenue - weekPourCost
 
   return (
@@ -1153,7 +1771,7 @@ function SalesPage({ lib, period, ingMap, weekSales, setWeekSales, logWeek }) {
                   <tbody>
                     {groupRecipes.map((recipe, i) => {
                       const qty = weekSales[recipe.id] || 0
-                      const pc = calcPourCost(recipe, ingMap)
+                      const pc = calcPourCost(recipe, ingMap, batchMap, batchLog)
                       const rev = recipe.salePrice * qty
                       const pourCostTotal = pc * qty
                       const gp = rev - pourCostTotal
