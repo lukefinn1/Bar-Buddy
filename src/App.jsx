@@ -205,10 +205,14 @@ const batchIngUsagePerMl = (run, ingMap) => {
 // Build a combined ingredient+batch lookup for recipe cost calc
 const calcPourCost = (recipe, ingMap, batchMap, batchLog) => {
   if (!recipe || !recipe.ingredients) return 0
+  const bm = batchMap || {}
+  const bl = batchLog || []
   return recipe.ingredients.reduce((sum, ri) => {
-    if (ri.isBatch) {
-      const run = getLatestRun(ri.id, batchLog)
-      return sum + ri.qty * batchCostPerMl(run, ingMap)
+    const isBatch = !!(ri.isBatch || bm[ri.id])
+    if (isBatch) {
+      const run = getLatestRun(ri.id, bl)
+      const cpml = batchCostPerMl(run, ingMap)
+      return sum + ri.qty * cpml
     }
     const ing = ingMap[ri.id]
     if (!ing) return sum
@@ -218,13 +222,15 @@ const calcPourCost = (recipe, ingMap, batchMap, batchLog) => {
 
 const calcUsage = (monthlySales, recipes, ingMap, batchMap, batchLog) => {
   const usage = {}
+  const bm = batchMap || {}
+  const bl = batchLog || []
   Object.entries(monthlySales).forEach(([recipeId, qty]) => {
     const recipe = recipes.find(r => r.id === recipeId)
     if (!recipe) return
     recipe.ingredients.forEach(ri => {
-      if (ri.isBatch) {
-        // Deduct raw ingredients through the batch at latest-run proportions
-        const run = getLatestRun(ri.id, batchLog)
+      const isBatch = !!(ri.isBatch || bm[ri.id])
+      if (isBatch) {
+        const run = getLatestRun(ri.id, bl)
         if (!run) return
         const perMl = batchIngUsagePerMl(run, ingMap)
         Object.entries(perMl).forEach(([ingId, perMlQty]) => {
@@ -239,15 +245,17 @@ const calcUsage = (monthlySales, recipes, ingMap, batchMap, batchLog) => {
 }
 
 // Batch stock: theoretical remaining in ml
-const calcBatchTheoClose = (batch, period, monthlySales, recipes) => {
+const calcBatchTheoClose = (batch, period, monthlySales, recipes, batchMap, ingMap) => {
   const openMl = period.batchOpeningStock?.[batch.id] || 0
-  // sum of ml consumed by all recipes that use this batch
+  const bm = batchMap || {}
+  const im = ingMap || {}
   let usedMl = 0
   recipes.forEach(r => {
     const sold = monthlySales[r.id] || 0
     if (!sold) return
     r.ingredients.forEach(ri => {
-      if (ri.isBatch && ri.id === batch.id) usedMl += ri.qty * sold
+      const isBatch = ri.isBatch || (!!bm[ri.id] && !im[ri.id])
+      if (isBatch && ri.id === batch.id) usedMl += ri.qty * sold
     })
   })
   return openMl - usedMl
@@ -464,7 +472,7 @@ export default function App() {
     const allBatches = lib.batches || []
     allBatches.forEach(b => {
       const closing = period.batchClosingStock?.[b.id]
-      newBatchOpening[b.id] = closing !== undefined ? closing : Math.max(0, calcBatchTheoClose(b, period, period.monthlySales, lib.recipes))
+      newBatchOpening[b.id] = closing !== undefined ? closing : Math.max(0, calcBatchTheoClose(b, period, period.monthlySales, lib.recipes, batchMap, ingMap))
     })
     updatePeriod({
       openingStock: newOpening,
@@ -552,7 +560,7 @@ function DashboardPage({ lib, period, ingMap, batchMap, batchLog, usage, theoClo
 
   // Batch alerts
   const batchAlerts = (lib.batches || []).filter(b => {
-    const theoMl = calcBatchTheoClose(b, period, period.monthlySales, lib.recipes)
+    const theoMl = calcBatchTheoClose(b, period, period.monthlySales, lib.recipes, batchMap, ingMap)
     const s = getBatchStatus(b, theoMl)
     return s === "Low -- Make Soon" || s === "Out of Stock"
   })
@@ -954,12 +962,18 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
   const [subTab, setSubTab] = useState("stock")
   const [showNewBatch, setShowNewBatch] = useState(false)
   const [logBatch, setLogBatch] = useState(null)
+  const [editBatch, setEditBatch] = useState(null)
 
   const batches = lib.batches || []
 
   const addBatch = (b) => {
     updateLib(prev => ({ ...prev, batches: [...(prev.batches || []), b] }))
     setShowNewBatch(false)
+  }
+
+  const saveBatch = (updated) => {
+    updateLib(prev => ({ ...prev, batches: (prev.batches || []).map(b => b.id === updated.id ? updated : b) }))
+    setEditBatch(null)
   }
 
   const deleteBatch = (id) => {
@@ -996,6 +1010,7 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
 
       {showNewBatch && <NewBatchModal ingredients={lib.ingredients} ingMap={ingMap} onSave={addBatch} onClose={() => setShowNewBatch(false)} />}
       {logBatch && <BatchRunModal batch={logBatch} ingredients={lib.ingredients} ingMap={ingMap} onSave={saveRun} onClose={() => setLogBatch(null)} />}
+      {editBatch && <EditBatchModal batch={editBatch} ingredients={lib.ingredients} ingMap={ingMap} onSave={saveBatch} onClose={() => setEditBatch(null)} />}
 
       {/* BATCH STOCK tab */}
       {subTab === "stock" && (
@@ -1010,7 +1025,7 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
             </thead>
             <tbody>
               {batches.map((batch, i) => {
-                const theoMl = calcBatchTheoClose(batch, period, period.monthlySales, lib.recipes)
+                const theoMl = calcBatchTheoClose(batch, period, period.monthlySales, lib.recipes, batchMap, ingMap)
                 const closingMl = period.batchClosingStock?.[batch.id] ?? ""
                 const actualMl = closingMl !== "" ? parseFloat(closingMl) || 0 : null
                 const variance = actualMl !== null ? actualMl - theoMl : null
@@ -1050,9 +1065,14 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
                       <BatchStatusPill status={status} />
                     </td>
                     <td style={{ padding: "7px 8px" }}>
-                      <button onClick={() => setLogBatch(batch)} style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #111827", borderRadius: 4, background: "#111827", color: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>
-                        Log Run
-                      </button>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => setEditBatch(batch)} style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #d1d5db", borderRadius: 4, background: "#fff", color: "#374151", cursor: "pointer" }}>
+                          Edit
+                        </button>
+                        <button onClick={() => setLogBatch(batch)} style={{ fontSize: 11, padding: "3px 10px", border: "1px solid #111827", borderRadius: 4, background: "#111827", color: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>
+                          Log Run
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -1146,7 +1166,10 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
                       {usedIn.length ? usedIn.map(r => r.name).join(", ") : <span style={{ color: "#9ca3af" }}>Not used in any recipe</span>}
                     </td>
                     <td style={{ padding: "7px 8px", textAlign: "center" }}>
-                      <button onClick={() => deleteBatch(batch.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16 }}>×</button>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                        <button onClick={() => setEditBatch(batch)} style={{ background: "none", border: "1px solid #d1d5db", borderRadius: 4, cursor: "pointer", fontSize: 11, padding: "2px 8px", color: "#374151" }}>Edit</button>
+                        <button onClick={() => deleteBatch(batch.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16 }}>×</button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -1246,16 +1269,97 @@ function NewBatchModal({ ingredients, ingMap, onSave, onClose }) {
   )
 }
 
+function EditBatchModal({ batch, ingredients, ingMap, onSave, onClose }) {
+  const [name, setName] = useState(batch.name)
+  const [method, setMethod] = useState(batch.method)
+  const [parMl, setParMl] = useState(String(batch.parMl))
+  const [inputs, setInputs] = useState(
+    (batch.defaultInputs || []).map(i => ({ ...i, qty: i.qty === 0 ? "" : String(i.qty) }))
+  )
+
+  const addInput = () => setInputs(p => [...p, { id: ingredients[0]?.id || "", qty: "" }])
+  const removeInput = (i) => setInputs(p => p.filter((_, idx) => idx !== i))
+  const updateInput = (i, field, val) => setInputs(p => p.map((inp, idx) => idx === i ? { ...inp, [field]: val } : inp))
+
+  const handleSave = () => {
+    if (!name.trim()) return
+    onSave({
+      ...batch,
+      name: name.trim(),
+      method,
+      parMl: parseFloat(parMl) || 1000,
+      defaultInputs: inputs
+        .filter(i => parseFloat(i.qty) > 0)
+        .map(i => ({ ...i, qty: parseFloat(i.qty) || 0 })),
+    })
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "#fff", borderRadius: 8, width: 520, maxHeight: "85vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>Edit Batch</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280" }}>×</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px", gap: 12, marginBottom: 16 }}>
+            <div style={{ gridColumn: "1/2" }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>BATCH NAME</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)}
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>METHOD</label>
+              <select value={method} onChange={e => setMethod(e.target.value)}
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13 }}>
+                {BATCH_METHOD_TAGS.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 4 }}>PAR (ml)</label>
+              <input type="text" inputMode="decimal" value={parMl} onChange={e => setParMl(e.target.value)} onFocus={e => e.target.select()}
+                style={{ width: "100%", padding: "6px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13, fontFamily: "JetBrains Mono, monospace" }} />
+            </div>
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 8 }}>DEFAULT INPUTS</div>
+          {inputs.map((inp, idx) => (
+            <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "center" }}>
+              <select value={inp.id} onChange={e => updateInput(idx, "id", e.target.value)}
+                style={{ flex: 1, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12 }}>
+                {ingredients.map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
+              </select>
+              <input type="text" inputMode="decimal" value={inp.qty}
+                onChange={e => updateInput(idx, "qty", e.target.value)}
+                onFocus={e => e.target.select()}
+                placeholder="0"
+                style={{ width: 80, padding: "5px 8px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 12, fontFamily: "JetBrains Mono, monospace", textAlign: "right" }} />
+              <span style={{ fontSize: 11, color: "#9ca3af", width: 24 }}>{ingMap[inp.id]?.recipeUnit}</span>
+              <button onClick={() => removeInput(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16 }}>×</button>
+            </div>
+          ))}
+          <button onClick={addInput} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "1px dashed #93c5fd", borderRadius: 4, padding: "4px 12px", cursor: "pointer", marginTop: 4, marginBottom: 20 }}>
+            + Add ingredient
+          </button>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button onClick={onClose} style={{ padding: "7px 16px", border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", fontSize: 13 }}>Cancel</button>
+            <button onClick={handleSave} style={{ padding: "7px 16px", border: "none", borderRadius: 5, background: "#111827", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function BatchRunModal({ batch, ingredients, ingMap, onSave, onClose }) {
   const [inputs, setInputs] = useState(
     (batch.defaultInputs || []).length > 0
-      ? batch.defaultInputs.map(i => ({ ...i }))
-      : [{ id: ingredients[0]?.id || "", qty: 0 }]
+      ? batch.defaultInputs.map(i => ({ ...i, qty: i.qty === 0 ? "" : String(i.qty) }))
+      : [{ id: ingredients[0]?.id || "", qty: "" }]
   )
   const [finalMl, setFinalMl] = useState("")
   const date = new Date().toISOString().slice(0, 10)
 
-  const addInput = () => setInputs(p => [...p, { id: ingredients[0]?.id || "", qty: 0 }])
+  const addInput = () => setInputs(p => [...p, { id: ingredients[0]?.id || "", qty: "" }])
   const removeInput = (i) => setInputs(p => p.filter((_, idx) => idx !== i))
   const updateInput = (i, field, val) => setInputs(p => p.map((inp, idx) => idx === i ? { ...inp, [field]: val } : inp))
 
