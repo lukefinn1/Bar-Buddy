@@ -193,10 +193,10 @@ const batchIngUsagePerMl = (run, ingMap) => {
     return ing.recipeUnit === "ml" ? s + inp.qty : s
   }, 0)
   if (liquidInputTotal <= 0) return {}
-  ;(run.inputs || []).forEach(inp => {
+  const inputs = run.inputs || []
+  inputs.forEach(inp => {
     const ing = ingMap[inp.id]
     if (!ing) return
-    // All ingredients deducted proportionally by their share of total input qty
     usage[inp.id] = (usage[inp.id] || 0) + (inp.qty / run.finalMl)
   })
   return usage
@@ -461,7 +461,8 @@ export default function App() {
       }
     })
     const newBatchOpening = {}
-    ;(lib.batches || []).forEach(b => {
+    const allBatches = lib.batches || []
+    allBatches.forEach(b => {
       const closing = period.batchClosingStock?.[b.id]
       newBatchOpening[b.id] = closing !== undefined ? closing : Math.max(0, calcBatchTheoClose(b, period, period.monthlySales, lib.recipes))
     })
@@ -1544,7 +1545,7 @@ function RecipesPage({ lib, ingMap, batchMap, batchLog, updateLib }) {
       )}
 
       {subTab === "margins" && (
-        <MarginsTab recipes={lib.recipes} ingMap={ingMap} />
+        <MarginsTab recipes={lib.recipes} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} />
       )}
     </div>
   )
