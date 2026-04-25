@@ -254,7 +254,7 @@ const calcBatchTheoClose = (batch, period, monthlySales, recipes, batchMap, ingM
     const sold = monthlySales[r.id] || 0
     if (!sold) return
     r.ingredients.forEach(ri => {
-      const isBatch = ri.isBatch || (!!bm[ri.id] && !im[ri.id])
+      const isBatch = !!(ri.isBatch || bm[ri.id])
       if (isBatch && ri.id === batch.id) usedMl += ri.qty * sold
     })
   })
@@ -965,6 +965,7 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
   const [editBatch, setEditBatch] = useState(null)
 
   const batches = lib.batches || []
+  const batchMap = Object.fromEntries(batches.map(b => [b.id, b]))
 
   const addBatch = (b) => {
     updateLib(prev => ({ ...prev, batches: [...(prev.batches || []), b] }))
