@@ -158,9 +158,9 @@ const DEFAULT_RECIPES = [
 const isBeer = (ing) => ing.category === "Beer & Cider"
 const countUnit = (ing) => isBeer(ing) ? "bottle" : ing.purchaseUnit
 const countSize = (ing) => isBeer(ing) ? 1 : ing.purchaseSize
-const countToBase = (ing, v) => (v || 0) * countSize(ing)   // count units -> recipe units
-const baseToCount = (ing, v) => (v || 0) / countSize(ing)   // recipe units -> count units
-const toPurch = (ing, baseVal) => baseVal / ing.purchaseSize // recipe units -> purchase units
+const countToBase = (ing, v) => (v || 0) * countSize(ing)
+const baseToCount = (ing, v) => (v || 0) / countSize(ing)
+const toPurch = (ing, baseVal) => baseVal / ing.purchaseSize
 
 const costPerUnit = (ing) => ing.costPerPurchaseUnit / ing.purchaseSize
 
@@ -953,7 +953,7 @@ const BATCH_METHOD_TAGS = ["Premix","Fat Wash","Clarified","Carbonated","Infusio
 function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod }) {
   const [subTab, setSubTab] = useState("stock")
   const [showNewBatch, setShowNewBatch] = useState(false)
-  const [logBatch, setLogBatch] = useState(null)  // batch being logged
+  const [logBatch, setLogBatch] = useState(null)
 
   const batches = lib.batches || []
 
