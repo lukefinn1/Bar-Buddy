@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 
-// ─── SEED DATA ────────────────────────────────────────────────────────────────
+//- SEED DATA -
 
 const CATEGORY_META = {
   "Spirits":         { color: "#B45309", bg: "#FEF3C7", text: "#92400E", border: "#D97706" },
@@ -153,18 +153,18 @@ const DEFAULT_RECIPES = [
   { id:"wt16",name:"Penfolds Bin 389 250ml",    category:"Wine", salePrice:101,ingredients:[{id:"w19",qty:250}] },
 ]
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+//- HELPERS -
 
 const isBeer = (ing) => ing.category === "Beer & Cider"
 const countUnit = (ing) => isBeer(ing) ? "bottle" : ing.purchaseUnit
 const countSize = (ing) => isBeer(ing) ? 1 : ing.purchaseSize
-const countToBase = (ing, v) => (v || 0) * countSize(ing)   // count units → recipe units
-const baseToCount = (ing, v) => (v || 0) / countSize(ing)   // recipe units → count units
-const toPurch = (ing, baseVal) => baseVal / ing.purchaseSize // recipe units → purchase units
+const countToBase = (ing, v) => (v || 0) * countSize(ing)   // count units -> recipe units
+const baseToCount = (ing, v) => (v || 0) / countSize(ing)   // recipe units -> count units
+const toPurch = (ing, baseVal) => baseVal / ing.purchaseSize // recipe units -> purchase units
 
 const costPerUnit = (ing) => ing.costPerPurchaseUnit / ing.purchaseSize
 
-// ── Batch helpers ─────────────────────────────────────────────────────────────
+//- Batch helpers -
 
 // Get the most recent batch log entry for a batch id
 const getLatestRun = (batchId, batchLog) => {
@@ -172,7 +172,7 @@ const getLatestRun = (batchId, batchLog) => {
   return runs.length ? runs[runs.length - 1] : null
 }
 
-// Cost per ml of finished batch from a run (all input costs ÷ finalMl)
+// Cost per ml of finished batch from a run (all input costs / finalMl)
 const batchCostPerMl = (run, ingMap) => {
   if (!run || !run.finalMl || run.finalMl <= 0) return 0
   const totalCost = (run.inputs || []).reduce((s, inp) => {
@@ -256,7 +256,7 @@ const calcBatchTheoClose = (batch, period, monthlySales, recipes) => {
 const getBatchStatus = (batch, theoMl) => {
   if (theoMl >= batch.parMl) return "Above Par"
   if (theoMl >= batch.parMl * 0.8) return "At Par"
-  if (theoMl > 0) return "Low — Make Soon"
+  if (theoMl > 0) return "Low -- Make Soon"
   return "Out of Stock"
 }
 
@@ -285,7 +285,7 @@ const orderSuggestion = (ing, theoClose) => {
 const fmtAUD = (v) => `$${Math.abs(v).toFixed(2)}`
 const fmtPct = (v) => `${v.toFixed(1)}%`
 
-// ─── ATOMS ────────────────────────────────────────────────────────────────────
+//- ATOMS -
 
 const NumInput = ({ value, onChange, style = {} }) => {
   const [local, setLocal] = useState(value === 0 || value === "" || value == null ? "" : String(value))
@@ -320,7 +320,7 @@ const SearchBar = ({ value, onChange, placeholder }) => (
     type="text"
     value={value}
     onChange={e => onChange(e.target.value)}
-    placeholder={placeholder || "Search…"}
+    placeholder={placeholder || "Search..."}
     style={{ padding: "5px 10px", border: "1px solid #d1d5db", borderRadius: 4, fontSize: 13, width: 200, outline: "none" }}
   />
 )
@@ -349,7 +349,7 @@ const StatusPill = ({ status }) => {
   )
 }
 
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+//- MAIN APP -
 
 export default function App() {
   const [tab, setTab] = useState("dashboard")
@@ -417,7 +417,7 @@ export default function App() {
 
   useEffect(() => { window.scrollTo(0, 0) }, [tab])
 
-  if (!lib || !period) return <div style={{ padding: 40, fontFamily: "Inter, sans-serif", color: "#374151" }}>Loading Bar Buddy…</div>
+  if (!lib || !period) return <div style={{ padding: 40, fontFamily: "Inter, sans-serif", color: "#374151" }}>Loading Bar Buddy...</div>
 
   const ingMap = Object.fromEntries(lib.ingredients.map(i => [i.id, i]))
   const batchMap = Object.fromEntries((lib.batches || []).map(b => [b.id, b]))
@@ -481,7 +481,7 @@ export default function App() {
   const hasPendingWeek = Object.keys(weekSales).some(k => weekSales[k] > 0)
   const monthName = new Date(period.monthStart).toLocaleString("default", { month: "long", year: "numeric" })
 
-  // ── Layout ──
+  //- Layout -
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', system-ui, sans-serif", fontSize: 13, color: "#111827", background: "#f9fafb" }}>
       {/* Sidebar */}
@@ -511,7 +511,7 @@ export default function App() {
           ))}
         </nav>
         <div style={{ padding: "12px 20px", borderTop: "1px solid #e5e7eb" }}>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>{monthName} · Week {period.weekNum}</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>{monthName} ? Week {period.weekNum}</div>
           {hasPendingWeek && (
             <button onClick={logWeek} style={{ display: "block", width: "100%", padding: "7px 0", marginBottom: 6, background: "#111827", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
               Log Week
@@ -520,7 +520,7 @@ export default function App() {
           <button onClick={newMonth} style={{ display: "block", width: "100%", padding: "7px 0", background: "transparent", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 5, cursor: "pointer", fontSize: 12 }}>
             New Month
           </button>
-          <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>● Saved</div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>* Saved</div>
         </div>
       </aside>
 
@@ -537,7 +537,7 @@ export default function App() {
   )
 }
 
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+//- DASHBOARD -
 
 function DashboardPage({ lib, period, ingMap, batchMap, batchLog, usage, theoClose, getStatus, setTab }) {
   const totalRevenue = lib.recipes.reduce((sum, r) => sum + r.salePrice * (period.monthlySales[r.id] || 0), 0)
@@ -554,7 +554,7 @@ function DashboardPage({ lib, period, ingMap, batchMap, batchLog, usage, theoClo
   const batchAlerts = (lib.batches || []).filter(b => {
     const theoMl = calcBatchTheoClose(b, period, period.monthlySales, lib.recipes)
     const s = getBatchStatus(b, theoMl)
-    return s === "Low — Make Soon" || s === "Out of Stock"
+    return s === "Low -- Make Soon" || s === "Out of Stock"
   })
 
   const recipeMargins = lib.recipes.map(r => {
@@ -601,7 +601,7 @@ function DashboardPage({ lib, period, ingMap, batchMap, batchLog, usage, theoClo
         <div style={{ marginBottom: 20, background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 6, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "#c2410c" }}>⚠ {batchAlerts.length} batch{batchAlerts.length > 1 ? "es" : ""} need making:</span>
           <span style={{ fontSize: 12, color: "#9a3412" }}>{batchAlerts.map(b => b.name).join(", ")}</span>
-          <button onClick={() => setTab("batches")} style={{ marginLeft: "auto", fontSize: 11, color: "#c2410c", background: "none", border: "none", cursor: "pointer" }}>Go to Batches →</button>
+          <button onClick={() => setTab("batches")} style={{ marginLeft: "auto", fontSize: 11, color: "#c2410c", background: "none", border: "none", cursor: "pointer" }}>Go to Batches -></button>
         </div>
       )}
 
@@ -610,7 +610,7 @@ function DashboardPage({ lib, period, ingMap, batchMap, batchLog, usage, theoClo
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6 }}>
           <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 600, fontSize: 13 }}>Order Alerts</span>
-            <button onClick={() => setTab("orders")} style={{ fontSize: 11, color: "#2563eb", background: "none", border: "none", cursor: "pointer" }}>View Full Report →</button>
+            <button onClick={() => setTab("orders")} style={{ fontSize: 11, color: "#2563eb", background: "none", border: "none", cursor: "pointer" }}>View Full Report -></button>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -713,7 +713,7 @@ function MarginTable({ rows }) {
   )
 }
 
-// ─── INVENTORY ────────────────────────────────────────────────────────────────
+//- INVENTORY -
 
 const CATEGORIES = Object.keys(CATEGORY_META)
 
@@ -777,7 +777,7 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
     <div style={{ padding: "24px 28px" }}>
       <PageTitle title="Inventory">
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <SearchBar value={search} onChange={setSearch} placeholder="Search ingredients…" />
+          <SearchBar value={search} onChange={setSearch} placeholder="Search ingredients..." />
           {editMode ? (
             <>
               <button onClick={addIngredient} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer" }}>
@@ -789,7 +789,7 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
             </>
           ) : (
             <button onClick={() => setEditMode(true)} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", color: "#374151" }}>
-              ✏️ Edit Inventory
+              Edit Inventory
             </button>
           )}
         </div>
@@ -797,7 +797,7 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
 
       {editMode && (
         <div style={{ marginBottom: 12, padding: "8px 14px", background: "#fef9c3", border: "1px solid #fde047", borderRadius: 6, fontSize: 12, color: "#854d0e" }}>
-          Edit mode active — click any cell to edit name, category, cost, size, par, or units. Changes save automatically.
+          Edit mode active -- click any cell to edit name, category, cost, size, par, or units. Changes save automatically.
         </div>
       )}
 
@@ -946,7 +946,7 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
   )
 }
 
-// ─── BATCHES ──────────────────────────────────────────────────────────────────
+//- BATCHES -
 
 const BATCH_METHOD_TAGS = ["Premix","Fat Wash","Clarified","Carbonated","Infusion","Other"]
 
@@ -1044,7 +1044,7 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
                     <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{theoMl.toFixed(0)}</td>
                     <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700,
                       color: variance === null ? "#9ca3af" : variance < -50 ? "#dc2626" : variance > 50 ? "#16a34a" : "#6b7280" }}>
-                      {variance === null ? "—" : `${variance >= 0 ? "+" : ""}${variance.toFixed(0)}`}
+                      {variance === null ? "--" : `${variance >= 0 ? "+" : ""}${variance.toFixed(0)}`}
                     </td>
                     <td style={{ padding: "7px 12px" }}>
                       <BatchStatusPill status={status} />
@@ -1059,7 +1059,7 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
               })}
               {batches.length === 0 && (
                 <tr><td colSpan={9} style={{ padding: "32px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
-                  No batches yet — click "New Batch" to create one
+                  No batches yet -- click "New Batch" to create one
                 </td></tr>
               )}
             </tbody>
@@ -1140,7 +1140,7 @@ function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod })
                       {(batch.defaultInputs || []).map(inp => {
                         const ing = ingMap[inp.id]
                         return ing ? `${inp.qty}${ing.recipeUnit} ${ing.name}` : null
-                      }).filter(Boolean).join(", ") || "—"}
+                      }).filter(Boolean).join(", ") || "--"}
                     </td>
                     <td style={{ padding: "7px 12px", fontSize: 11, color: "#374151" }}>
                       {usedIn.length ? usedIn.map(r => r.name).join(", ") : <span style={{ color: "#9ca3af" }}>Not used in any recipe</span>}
@@ -1166,7 +1166,7 @@ function BatchStatusPill({ status }) {
   const map = {
     "Above Par":     { bg: "#dcfce7", text: "#166534", border: "#86efac" },
     "At Par":        { bg: "#dbeafe", text: "#1e40af", border: "#93c5fd" },
-    "Low — Make Soon":{ bg: "#fef9c3", text: "#854d0e", border: "#fde047" },
+    "Low -- Make Soon":{ bg: "#fef9c3", text: "#854d0e", border: "#fde047" },
     "Out of Stock":  { bg: "#fee2e2", text: "#991b1b", border: "#fca5a5" },
   }
   const s = map[status] || map["Above Par"]
@@ -1264,7 +1264,7 @@ function BatchRunModal({ batch, ingredients, ingMap, onSave, onClose }) {
     return ing?.recipeUnit === "ml" ? s + (parseFloat(inp.qty) || 0) : s
   }, 0)
   const outMl = parseFloat(finalMl) || 0
-  const yieldPct = totalLiquidIn > 0 && outMl > 0 ? (outMl / totalLiquidIn * 100).toFixed(1) : "—"
+  const yieldPct = totalLiquidIn > 0 && outMl > 0 ? (outMl / totalLiquidIn * 100).toFixed(1) : "--"
 
   const totalCostCalc = inputs.reduce((s, inp) => {
     const ing = ingMap[inp.id]
@@ -1288,8 +1288,8 @@ function BatchRunModal({ batch, ingredients, ingMap, onSave, onClose }) {
       <div style={{ background: "#fff", borderRadius: 8, width: 520, maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>Log Batch Run — {batch.name}</div>
-            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{date} · {batch.method}</div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>Log Batch Run -- {batch.name}</div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{date} ? {batch.method}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280" }}>×</button>
         </div>
@@ -1322,7 +1322,7 @@ function BatchRunModal({ batch, ingredients, ingMap, onSave, onClose }) {
           {/* Live yield preview */}
           <div style={{ background: "#f9fafb", borderRadius: 6, padding: "12px 16px", display: "flex", gap: 28, marginBottom: 20 }}>
             <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>LIQUID IN</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14 }}>{totalLiquidIn}ml</div></div>
-            <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>YIELD</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14, color: yieldPct !== "—" && parseFloat(yieldPct) < 70 ? "#dc2626" : "#111827" }}>{yieldPct}{yieldPct !== "—" ? "%" : ""}</div></div>
+            <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>YIELD</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14, color: yieldPct !== "--" && parseFloat(yieldPct) < 70 ? "#dc2626" : "#111827" }}>{yieldPct}{yieldPct !== "--" ? "%" : ""}</div></div>
             <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>TOTAL COST</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14 }}>${totalCostCalc.toFixed(2)}</div></div>
             <div><div style={{ fontSize: 10, color: "#6b7280", marginBottom: 2 }}>COST/ml</div><div style={{ fontFamily: "JetBrains Mono, monospace", fontWeight: 700, fontSize: 14, color: "#7c3aed" }}>${cpml.toFixed(4)}</div></div>
           </div>
@@ -1339,7 +1339,7 @@ function BatchRunModal({ batch, ingredients, ingMap, onSave, onClose }) {
   )
 }
 
-// ─── RECIPES ──────────────────────────────────────────────────────────────────
+//- RECIPES -
 
 function RecipesPage({ lib, ingMap, batchMap, batchLog, updateLib }) {
   const [subTab, setSubTab] = useState("specs")
@@ -1362,7 +1362,7 @@ function RecipesPage({ lib, ingMap, batchMap, batchLog, updateLib }) {
   return (
     <div style={{ padding: "24px 28px" }}>
       <PageTitle title="Recipes">
-        <SearchBar value={search} onChange={setSearch} placeholder="Search recipes…" />
+        <SearchBar value={search} onChange={setSearch} placeholder="Search recipes..." />
       </PageTitle>
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
         {["specs","margins"].map(t => (
@@ -1716,7 +1716,7 @@ function MarginsTab({ recipes, ingMap, batchMap, batchLog }) {
   )
 }
 
-// ─── SALES ────────────────────────────────────────────────────────────────────
+//- SALES -
 
 function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeekSales, logWeek }) {
   const [subTab, setSubTab] = useState("week")
@@ -1735,7 +1735,7 @@ function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeek
       <PageTitle title="Sales">
         {subTab === "week" && (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Search drinks…" />
+            <SearchBar value={search} onChange={setSearch} placeholder="Search drinks..." />
             <button onClick={logWeek} style={{ padding: "7px 16px", background: "#111827", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
               Log This Week
             </button>
@@ -1896,7 +1896,7 @@ function TotalItem({ label, value, highlight }) {
   )
 }
 
-// ─── ORDERS ───────────────────────────────────────────────────────────────────
+//- ORDERS -
 
 function OrdersPage({ lib, theoClose, ingMap }) {
   const [showAll, setShowAll] = useState(false)
@@ -1980,7 +1980,7 @@ function OrdersPage({ lib, theoClose, ingMap }) {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: "24px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>🎉 All items are at or above par</td></tr>
+              <tr><td colSpan={7} style={{ padding: "24px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>All items are at or above par</td></tr>
             )}
           </tbody>
         </table>
@@ -1989,7 +1989,7 @@ function OrdersPage({ lib, theoClose, ingMap }) {
   )
 }
 
-// ─── SHARED ───────────────────────────────────────────────────────────────────
+//- SHARED -
 
 function PageTitle({ title, children }) {
   return (
