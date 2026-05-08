@@ -268,13 +268,15 @@ const getBatchStatus = (batch, theoMl) => {
   return "Out of Stock"
 }
 
-const calcTheoClose = (ingredients, openingStock, deliveries, usage) => {
+const calcTheoClose = (ingredients, openingStock, receives, usage) => {
   const theoClose = {}
   ingredients.forEach(ing => {
     const open = countToBase(ing, openingStock[ing.id] || 0)
-    const del  = countToBase(ing, deliveries[ing.id] || 0)
+    const totalReceived = (receives || []).reduce((s, recv) => {
+      return s + countToBase(ing, recv.items[ing.id] || 0)
+    }, 0)
     const used = usage[ing.id] || 0
-    theoClose[ing.id] = open + del - used
+    theoClose[ing.id] = open + totalReceived - used
   })
   return theoClose
 }
@@ -359,50 +361,88 @@ const StatusPill = ({ status }) => {
 
 //- MAIN APP -
 
+const monthKey = (y, m) => `bb-period-${String(y).padStart(4,"0")}-${String(m+1).padStart(2,"0")}`
+const todayYM = () => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } }
+const fmtMonthLabel = (y, m) => new Date(y, m, 1).toLocaleString("default", { month: "long", year: "numeric" })
+const getMonWeekRange = (date) => {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diffToMon = (day === 0 ? -6 : 1 - day)
+  const mon = new Date(d); mon.setDate(d.getDate() + diffToMon)
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
+  const fmt = (dt) => dt.toLocaleDateString("en-AU", { weekday:"short", day:"numeric", month:"short", year:"numeric" })
+  return `${fmt(mon)} - ${fmt(sun)}`
+}
+
 export default function App() {
   const [tab, setTab] = useState("dashboard")
   const [lib, setLib] = useState(null)
   const [period, setPeriod] = useState(null)
+  const [viewYM, setViewYM] = useState(todayYM())
   const [weekSales, setWeekSales] = useState({})
   const saveTimer = useRef(null)
+  const currentYM = todayYM()
+  const isCurrentMonth = viewYM.y === currentYM.y && viewYM.m === currentYM.m
 
-  // Load from storage
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const libRes = await window.storage.get("bb-v1-lib")
-        const perRes = await window.storage.get("bb-v1-period")
-        const loadedLib = libRes ? JSON.parse(libRes.value) : { ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES, batches: [] }
-        if (!loadedLib.batches) loadedLib.batches = []
-        setLib(loadedLib)
-        const loadedPeriod = perRes ? JSON.parse(perRes.value) : defaultPeriod()
-        if (!loadedPeriod.batchOpeningStock) loadedPeriod.batchOpeningStock = {}
-        if (!loadedPeriod.batchClosingStock) loadedPeriod.batchClosingStock = {}
-        if (!loadedPeriod.batchLog) loadedPeriod.batchLog = []
-        setPeriod(loadedPeriod)
-      } catch {
-        setLib({ ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES, batches: [] })
-        setPeriod(defaultPeriod())
-      }
-    }
-    loadData()
-  }, [])
-
-  const defaultPeriod = () => ({
-    openingStock: {}, deliveries: {}, closingStock: {},
+  const defaultPeriod = (y, m) => ({
+    month: monthKey(y, m),
+    openingStock: {}, closingStock: {},
+    receives: [],
     batchOpeningStock: {}, batchClosingStock: {}, batchLog: [],
     monthlySales: {}, weeklyLog: [],
-    monthStart: new Date().toISOString().slice(0, 10),
-    weekNum: 1,
   })
 
-  // Debounced save
+  useEffect(() => {
+    const loadLib = async () => {
+      try {
+        const libRes = await window.storage.get("bb-v1-lib")
+        const loadedLib = libRes ? JSON.parse(libRes.value) : { ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES, batches: [] }
+        if (!loadedLib.batches) loadedLib.batches = []
+        const batchIds = new Set(loadedLib.batches.map(b => b.id))
+        loadedLib.recipes = loadedLib.recipes.map(r => ({
+          ...r,
+          ingredients: r.ingredients.map(ri => ({
+            ...ri,
+            isBatch: batchIds.has(ri.id) ? true : (ri.isBatch || false),
+          }))
+        }))
+        setLib(loadedLib)
+      } catch {
+        setLib({ ingredients: DEFAULT_INGREDIENTS, recipes: DEFAULT_RECIPES, batches: [] })
+      }
+    }
+    loadLib()
+  }, [])
+
+  useEffect(() => {
+    const loadPeriod = async () => {
+      try {
+        const key = monthKey(viewYM.y, viewYM.m)
+        const res = await window.storage.get(key)
+        if (res) {
+          const p = JSON.parse(res.value)
+          if (!p.receives) p.receives = []
+          if (!p.batchLog) p.batchLog = []
+          if (!p.batchOpeningStock) p.batchOpeningStock = {}
+          if (!p.batchClosingStock) p.batchClosingStock = {}
+          setPeriod(p)
+        } else {
+          setPeriod(defaultPeriod(viewYM.y, viewYM.m))
+        }
+      } catch {
+        setPeriod(defaultPeriod(viewYM.y, viewYM.m))
+      }
+    }
+    loadPeriod()
+    setWeekSales({})
+  }, [viewYM.y, viewYM.m])
+
   const saveData = useCallback((newLib, newPeriod) => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       try {
         if (newLib) await window.storage.set("bb-v1-lib", JSON.stringify(newLib))
-        if (newPeriod) await window.storage.set("bb-v1-period", JSON.stringify(newPeriod))
+        if (newPeriod) await window.storage.set(newPeriod.month, JSON.stringify(newPeriod))
       } catch {}
     }, 600)
   }, [])
@@ -431,7 +471,7 @@ export default function App() {
   const batchMap = Object.fromEntries((lib.batches || []).map(b => [b.id, b]))
   const batchLog = period.batchLog || []
   const usage = calcUsage(period.monthlySales, lib.recipes, ingMap, batchMap, batchLog)
-  const theoClose = calcTheoClose(lib.ingredients, period.openingStock, period.deliveries, usage)
+  const theoClose = calcTheoClose(lib.ingredients, period.openingStock, period.receives, usage)
 
   const getStatus = (ing) => {
     const rem = toPurch(ing, theoClose[ing.id] || 0)
@@ -442,11 +482,12 @@ export default function App() {
   }
 
   const logWeek = () => {
-    if (Object.keys(weekSales).length === 0) return
-    const now = new Date()
+    const hasSales = Object.values(weekSales).some(v => v > 0)
+    if (!hasSales) return
     const entry = {
-      label: `Week ${period.weekNum}`,
-      weekOf: now.toISOString().slice(0, 10),
+      id: "wk_" + Date.now(),
+      dateRange: getMonWeekRange(new Date()),
+      loggedAt: new Date().toISOString(),
       sales: { ...weekSales },
     }
     updatePeriod(prev => {
@@ -454,19 +495,17 @@ export default function App() {
       Object.entries(weekSales).forEach(([rid, qty]) => {
         newMonthlySales[rid] = (newMonthlySales[rid] || 0) + qty
       })
-      return { ...prev, monthlySales: newMonthlySales, weeklyLog: [...prev.weeklyLog, entry], weekNum: prev.weekNum + 1 }
+      return { ...prev, monthlySales: newMonthlySales, weeklyLog: [...prev.weeklyLog, entry] }
     })
     setWeekSales({})
   }
 
-  const newMonth = () => {
+  const newMonth = async () => {
     const newOpening = {}
     lib.ingredients.forEach(ing => {
-      if (period.closingStock[ing.id] !== undefined) {
-        newOpening[ing.id] = period.closingStock[ing.id]
-      } else {
-        newOpening[ing.id] = baseToCount(ing, theoClose[ing.id] || 0)
-      }
+      newOpening[ing.id] = period.closingStock[ing.id] !== undefined
+        ? period.closingStock[ing.id]
+        : baseToCount(ing, theoClose[ing.id] || 0)
     })
     const newBatchOpening = {}
     const allBatches = lib.batches || []
@@ -474,25 +513,19 @@ export default function App() {
       const closing = period.batchClosingStock?.[b.id]
       newBatchOpening[b.id] = closing !== undefined ? closing : Math.max(0, calcBatchTheoClose(b, period, period.monthlySales, lib.recipes, batchMap, ingMap))
     })
-    updatePeriod({
-      openingStock: newOpening,
-      deliveries: {}, closingStock: {},
-      batchOpeningStock: newBatchOpening,
-      batchClosingStock: {}, batchLog: [],
-      monthlySales: {}, weeklyLog: [],
-      monthStart: new Date().toISOString().slice(0, 10),
-      weekNum: 1,
-    })
-    setWeekSales({})
+    const nm = viewYM.m === 11 ? 0 : viewYM.m + 1
+    const ny = viewYM.m === 11 ? viewYM.y + 1 : viewYM.y
+    const newP = { ...defaultPeriod(ny, nm), openingStock: newOpening, batchOpeningStock: newBatchOpening }
+    await window.storage.set(monthKey(ny, nm), JSON.stringify(newP))
+    setViewYM({ y: ny, m: nm })
   }
 
-  const hasPendingWeek = Object.keys(weekSales).some(k => weekSales[k] > 0)
-  const monthName = new Date(period.monthStart).toLocaleString("default", { month: "long", year: "numeric" })
+  const prevMonth = () => setViewYM(prev => prev.m === 0 ? { y: prev.y - 1, m: 11 } : { y: prev.y, m: prev.m - 1 })
+  const nextMonth = () => { if (!isCurrentMonth) setViewYM(prev => prev.m === 11 ? { y: prev.y + 1, m: 0 } : { y: prev.y, m: prev.m + 1 }) }
+  const hasPendingWeek = isCurrentMonth && Object.values(weekSales).some(v => v > 0)
 
-  //- Layout -
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', system-ui, sans-serif", fontSize: 13, color: "#111827", background: "#f9fafb" }}>
-      {/* Sidebar */}
       <aside style={{ width: 220, minWidth: 220, background: "#fff", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", padding: "20px 0" }}>
         <div style={{ padding: "0 20px 20px", borderBottom: "1px solid #e5e7eb" }}>
           <div style={{ fontWeight: 700, fontSize: 18, color: "#111827", letterSpacing: "-0.5px" }}>🍸 Bar Buddy</div>
@@ -500,12 +533,13 @@ export default function App() {
         </div>
         <nav style={{ padding: "12px 0", flex: 1 }}>
           {[
-            ["dashboard", "Dashboard"],
-            ["inventory", "Inventory"],
-            ["batches",   "Batches"],
-            ["recipes",   "Recipes"],
-            ["sales",     "Sales"],
-            ["orders",    "Orders"],
+            ["dashboard",  "Dashboard"],
+            ["inventory",  "Inventory"],
+            ["deliveries", "Deliveries"],
+            ["batches",    "Batches"],
+            ["recipes",    "Recipes"],
+            ["sales",      "Sales"],
+            ["orders",     "Orders"],
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} style={{
               display: "block", width: "100%", textAlign: "left",
@@ -519,27 +553,38 @@ export default function App() {
           ))}
         </nav>
         <div style={{ padding: "12px 20px", borderTop: "1px solid #e5e7eb" }}>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>{monthName} ? Week {period.weekNum}</div>
           {hasPendingWeek && (
             <button onClick={logWeek} style={{ display: "block", width: "100%", padding: "7px 0", marginBottom: 6, background: "#111827", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
               Log Week
             </button>
           )}
-          <button onClick={newMonth} style={{ display: "block", width: "100%", padding: "7px 0", background: "transparent", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 5, cursor: "pointer", fontSize: 12 }}>
-            New Month
-          </button>
+          {isCurrentMonth && (
+            <button onClick={newMonth} style={{ display: "block", width: "100%", padding: "7px 0", background: "transparent", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 5, cursor: "pointer", fontSize: 12 }}>
+              New Month
+            </button>
+          )}
           <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>* Saved</div>
         </div>
       </aside>
 
-      {/* Main */}
-      <main style={{ flex: 1, overflow: "auto" }}>
-        {tab === "dashboard" && <DashboardPage lib={lib} period={period} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} usage={usage} theoClose={theoClose} getStatus={getStatus} setTab={setTab} />}
-        {tab === "inventory" && <InventoryPage lib={lib} period={period} ingMap={ingMap} theoClose={theoClose} usage={usage} getStatus={getStatus} updatePeriod={updatePeriod} updateLib={updateLib} />}
-        {tab === "batches"   && <BatchesPage lib={lib} period={period} ingMap={ingMap} batchLog={batchLog} updateLib={updateLib} updatePeriod={updatePeriod} />}
-        {tab === "recipes"   && <RecipesPage lib={lib} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} updateLib={updateLib} />}
-        {tab === "sales"     && <SalesPage lib={lib} period={period} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} weekSales={weekSales} setWeekSales={setWeekSales} logWeek={logWeek} />}
-        {tab === "orders"    && <OrdersPage lib={lib} theoClose={theoClose} ingMap={ingMap} />}
+      <main style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 28px", borderBottom: "1px solid #e5e7eb", background: "#fff", flexShrink: 0 }}>
+          <button onClick={prevMonth} style={{ padding: "3px 12px", border: "1px solid #d1d5db", borderRadius: 4, background: "#fff", cursor: "pointer", fontSize: 16, color: "#374151", lineHeight: 1 }}>&#8249;</button>
+          <span style={{ fontWeight: 700, fontSize: 15, minWidth: 170, textAlign: "center", color: "#111827" }}>{fmtMonthLabel(viewYM.y, viewYM.m)}</span>
+          <button onClick={nextMonth} style={{ padding: "3px 12px", border: "1px solid #d1d5db", borderRadius: 4, background: isCurrentMonth ? "#f9fafb" : "#fff", cursor: isCurrentMonth ? "default" : "pointer", fontSize: 16, color: isCurrentMonth ? "#d1d5db" : "#374151", lineHeight: 1 }}>&#8250;</button>
+          {!isCurrentMonth && (
+            <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 10, background: "#fef9c3", color: "#854d0e", fontWeight: 600, marginLeft: 4 }}>Viewing archive — read only</span>
+          )}
+        </div>
+        <div style={{ flex: 1, overflow: "auto" }}>
+          {tab === "dashboard"  && <DashboardPage lib={lib} period={period} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} usage={usage} theoClose={theoClose} getStatus={getStatus} setTab={setTab} />}
+          {tab === "inventory"  && <InventoryPage lib={lib} period={period} ingMap={ingMap} theoClose={theoClose} usage={usage} getStatus={getStatus} updatePeriod={updatePeriod} updateLib={updateLib} isCurrentMonth={isCurrentMonth} />}
+          {tab === "deliveries" && <DeliveriesPage lib={lib} period={period} ingMap={ingMap} updatePeriod={updatePeriod} isCurrentMonth={isCurrentMonth} />}
+          {tab === "batches"    && <BatchesPage lib={lib} period={period} ingMap={ingMap} batchLog={batchLog} updateLib={updateLib} updatePeriod={updatePeriod} isCurrentMonth={isCurrentMonth} />}
+          {tab === "recipes"    && <RecipesPage lib={lib} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} updateLib={updateLib} />}
+          {tab === "sales"      && <SalesPage lib={lib} period={period} ingMap={ingMap} batchMap={batchMap} batchLog={batchLog} weekSales={weekSales} setWeekSales={setWeekSales} logWeek={logWeek} isCurrentMonth={isCurrentMonth} />}
+          {tab === "orders"     && <OrdersPage lib={lib} theoClose={theoClose} ingMap={ingMap} />}
+        </div>
       </main>
     </div>
   )
@@ -725,11 +770,13 @@ function MarginTable({ rows }) {
 
 const CATEGORIES = Object.keys(CATEGORY_META)
 
-function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updatePeriod, updateLib }) {
+function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updatePeriod, updateLib, isCurrentMonth }) {
   const [catFilter, setCatFilter] = useState("All")
   const [search, setSearch] = useState("")
   const [editMode, setEditMode] = useState(false)
   const cats = ["All", ...CATEGORIES]
+
+  const totalReceived = (ingId) => (period.receives || []).reduce((s, r) => s + (r.items[ingId] || 0), 0)
 
   const filtered = lib.ingredients.filter(ing => {
     if (catFilter !== "All" && ing.category !== catFilter) return false
@@ -738,6 +785,7 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
   })
 
   const setStock = (field, id, val) => {
+    if (!isCurrentMonth) return
     updatePeriod(prev => ({ ...prev, [field]: { ...prev[field], [id]: val } }))
   }
 
@@ -755,29 +803,17 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
 
   const addIngredient = () => {
     const newId = "ing_" + Date.now()
-    const newIng = {
+    updateLib(prev => ({ ...prev, ingredients: [...prev.ingredients, {
       id: newId, name: "New Ingredient", category: "Spirits",
-      recipeUnit: "ml", purchaseUnit: "bottle", purchaseSize: 700,
-      par: 2, costPerPurchaseUnit: 0,
-    }
-    updateLib(prev => ({ ...prev, ingredients: [...prev.ingredients, newIng] }))
+      recipeUnit: "ml", purchaseUnit: "bottle", purchaseSize: 700, par: 2, costPerPurchaseUnit: 0,
+    }]}))
   }
 
   const cellInput = (val, onChange, opts = {}) => (
-    <input
-      type="text" inputMode={opts.numeric ? "decimal" : "text"}
-      defaultValue={val}
-      onFocus={e => e.target.select()}
-      onBlur={e => {
-        const v = opts.numeric ? (parseFloat(e.target.value) || 0) : e.target.value.trim()
-        onChange(v)
-      }}
-      style={{
-        width: opts.width || "100%", padding: "3px 6px",
-        border: "1px solid #d1d5db", borderRadius: 3,
-        fontSize: 12, fontFamily: opts.mono ? "JetBrains Mono, monospace" : "inherit",
-        background: "#fff",
-      }}
+    <input type="text" inputMode={opts.numeric ? "decimal" : "text"}
+      defaultValue={val} onFocus={e => e.target.select()}
+      onBlur={e => { const v = opts.numeric ? (parseFloat(e.target.value) || 0) : e.target.value.trim(); onChange(v) }}
+      style={{ width: opts.width || "100%", padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 3, fontSize: 12, fontFamily: opts.mono ? "JetBrains Mono, monospace" : "inherit", background: "#fff" }}
     />
   )
 
@@ -788,51 +824,33 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
           <SearchBar value={search} onChange={setSearch} placeholder="Search ingredients..." />
           {editMode ? (
             <>
-              <button onClick={addIngredient} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer" }}>
-                + Add Product
-              </button>
-              <button onClick={() => setEditMode(false)} style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 5, background: "#111827", color: "#fff", cursor: "pointer" }}>
-                Done Editing
-              </button>
+              <button onClick={addIngredient} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer" }}>+ Add Product</button>
+              <button onClick={() => setEditMode(false)} style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 5, background: "#111827", color: "#fff", cursor: "pointer" }}>Done Editing</button>
             </>
           ) : (
-            <button onClick={() => setEditMode(true)} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", color: "#374151" }}>
-              Edit Inventory
-            </button>
+            <button onClick={() => setEditMode(true)} style={{ padding: "6px 14px", fontSize: 12, border: "1px solid #d1d5db", borderRadius: 5, background: "#fff", cursor: "pointer", color: "#374151" }}>Edit Inventory</button>
           )}
         </div>
       </PageTitle>
 
-      {editMode && (
-        <div style={{ marginBottom: 12, padding: "8px 14px", background: "#fef9c3", border: "1px solid #fde047", borderRadius: 6, fontSize: 12, color: "#854d0e" }}>
-          Edit mode active -- click any cell to edit name, category, cost, size, par, or units. Changes save automatically.
-        </div>
-      )}
+      {editMode && <div style={{ marginBottom: 12, padding: "8px 14px", background: "#fef9c3", border: "1px solid #fde047", borderRadius: 6, fontSize: 12, color: "#854d0e" }}>Edit mode — click any cell to change name, category, cost, size, par or units. Auto-saves.</div>}
 
-      {/* Category filters */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {cats.map(c => (
-          <button key={c} onClick={() => setCatFilter(c)} style={{
-            padding: "4px 12px", fontSize: 12, borderRadius: 20, cursor: "pointer",
-            background: catFilter === c ? "#111827" : "#fff",
-            color: catFilter === c ? "#fff" : "#374151",
-            border: `1px solid ${catFilter === c ? "#111827" : "#d1d5db"}`,
-          }}>{c}</button>
+          <button key={c} onClick={() => setCatFilter(c)} style={{ padding: "4px 12px", fontSize: 12, borderRadius: 20, cursor: "pointer", background: catFilter === c ? "#111827" : "#fff", color: catFilter === c ? "#fff" : "#374151", border: `1px solid ${catFilter === c ? "#111827" : "#d1d5db"}` }}>{c}</button>
         ))}
       </div>
 
       <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: editMode ? 1100 : 900 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: editMode ? 1100 : 860 }}>
           <thead>
             <tr style={{ background: "#f9fafb" }}>
-              {editMode
-                ? ["Name","Category","Recipe Unit","Purchase Unit","Size","Cost ($)","Par","Opening","Deliveries","Closing","Variance","Status",""].map(h => (
-                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
-                  ))
-                : ["Name","Category","Opening Stock","Deliveries","Closing Stock","Theoretical","Variance","Par","Status"].map(h => (
-                    <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
-                  ))
-              }
+              {(editMode
+                ? ["Name","Category","Recipe Unit","Purchase Unit","Size","Cost ($)","Par","Opening","Received","Closing","Variance","Status",""]
+                : ["Name","Category","Opening","Received","Closing","Theoretical","Variance","Par","Status"]
+              ).map(h => (
+                <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -842,97 +860,62 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
               const variance = calcVariance(ing, theoClose, period.closingStock)
               const status = getStatus(ing)
               const unit = countUnit(ing)
+              const received = totalReceived(ing.id)
               const rowBg = i % 2 === 0 ? "#fff" : "#fafafa"
+              const readOnly = !isCurrentMonth
 
               if (editMode) {
                 return (
                   <tr key={ing.id} style={{ background: rowBg, borderBottom: "1px solid #f3f4f6" }}>
-                    {/* Name */}
-                    <td style={{ padding: "4px 8px", minWidth: 160 }}>
-                      {cellInput(ing.name, v => updateIngField(ing.id, "name", v))}
-                    </td>
-                    {/* Category */}
+                    <td style={{ padding: "4px 8px", minWidth: 160 }}>{cellInput(ing.name, v => updateIngField(ing.id, "name", v))}</td>
                     <td style={{ padding: "4px 8px", minWidth: 130 }}>
-                      <select
-                        defaultValue={ing.category}
-                        onBlur={e => updateIngField(ing.id, "category", e.target.value)}
-                        style={{ width: "100%", padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 3, fontSize: 12 }}
-                      >
+                      <select defaultValue={ing.category} onBlur={e => updateIngField(ing.id, "category", e.target.value)} style={{ width: "100%", padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 3, fontSize: 12 }}>
                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </td>
-                    {/* Recipe Unit */}
                     <td style={{ padding: "4px 8px", minWidth: 80 }}>
-                      <select
-                        defaultValue={ing.recipeUnit}
-                        onBlur={e => updateIngField(ing.id, "recipeUnit", e.target.value)}
-                        style={{ width: "100%", padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 3, fontSize: 12 }}
-                      >
+                      <select defaultValue={ing.recipeUnit} onBlur={e => updateIngField(ing.id, "recipeUnit", e.target.value)} style={{ width: "100%", padding: "3px 6px", border: "1px solid #d1d5db", borderRadius: 3, fontSize: 12 }}>
                         {["ml","g","unit"].map(u => <option key={u}>{u}</option>)}
                       </select>
                     </td>
-                    {/* Purchase Unit */}
-                    <td style={{ padding: "4px 8px", minWidth: 100 }}>
-                      {cellInput(ing.purchaseUnit, v => updateIngField(ing.id, "purchaseUnit", v))}
-                    </td>
-                    {/* Purchase Size */}
-                    <td style={{ padding: "4px 8px", minWidth: 70 }}>
-                      {cellInput(ing.purchaseSize, v => updateIngField(ing.id, "purchaseSize", v), { numeric: true, mono: true, width: 70 })}
-                    </td>
-                    {/* Cost */}
-                    <td style={{ padding: "4px 8px", minWidth: 80 }}>
-                      {cellInput(ing.costPerPurchaseUnit, v => updateIngField(ing.id, "costPerPurchaseUnit", v), { numeric: true, mono: true, width: 70 })}
-                    </td>
-                    {/* Par */}
-                    <td style={{ padding: "4px 8px", minWidth: 60 }}>
-                      {cellInput(ing.par, v => updateIngField(ing.id, "par", v), { numeric: true, mono: true, width: 55 })}
-                    </td>
-                    {/* Opening */}
+                    <td style={{ padding: "4px 8px", minWidth: 100 }}>{cellInput(ing.purchaseUnit, v => updateIngField(ing.id, "purchaseUnit", v))}</td>
+                    <td style={{ padding: "4px 8px", minWidth: 70 }}>{cellInput(ing.purchaseSize, v => updateIngField(ing.id, "purchaseSize", v), { numeric: true, mono: true, width: 70 })}</td>
+                    <td style={{ padding: "4px 8px", minWidth: 80 }}>{cellInput(ing.costPerPurchaseUnit, v => updateIngField(ing.id, "costPerPurchaseUnit", v), { numeric: true, mono: true, width: 70 })}</td>
+                    <td style={{ padding: "4px 8px", minWidth: 60 }}>{cellInput(ing.par, v => updateIngField(ing.id, "par", v), { numeric: true, mono: true, width: 55 })}</td>
                     <td style={{ padding: "4px 8px", minWidth: 80 }}>
                       <NumInput value={period.openingStock[ing.id] || 0} onChange={v => setStock("openingStock", ing.id, v)} style={{ width: 65 }} />
                     </td>
-                    {/* Deliveries */}
-                    <td style={{ padding: "4px 8px", minWidth: 80 }}>
-                      <NumInput value={period.deliveries[ing.id] || 0} onChange={v => setStock("deliveries", ing.id, v)} style={{ width: 65 }} />
-                    </td>
-                    {/* Closing */}
+                    <td style={{ padding: "6px 8px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "#374151" }}>{received} {unit}</td>
                     <td style={{ padding: "4px 8px", minWidth: 80 }}>
                       <NumInput value={period.closingStock[ing.id] || ""} onChange={v => setStock("closingStock", ing.id, v)} style={{ width: 65 }} />
                     </td>
-                    {/* Variance */}
-                    <td style={{ padding: "6px 8px", fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700, color: variance < -0.05 ? "#dc2626" : variance > 0.05 ? "#16a34a" : "#6b7280", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "6px 8px", fontFamily: "JetBrains Mono, monospace", fontSize: 11, fontWeight: 700, color: variance < -0.05 ? "#dc2626" : variance > 0.05 ? "#16a34a" : "#6b7280" }}>
                       {variance >= 0 ? "+" : ""}{variance.toFixed(2)}
                     </td>
-                    {/* Status */}
                     <td style={{ padding: "4px 8px" }}><StatusPill status={status} /></td>
-                    {/* Delete */}
                     <td style={{ padding: "4px 8px", textAlign: "center" }}>
-                      <button onClick={() => deleteIng(ing.id)} title="Remove ingredient" style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16, lineHeight: 1, padding: "2px 4px" }}>×</button>
+                      <button onClick={() => deleteIng(ing.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 16, lineHeight: 1, padding: "2px 4px" }}>×</button>
                     </td>
                   </tr>
                 )
               }
 
-              // Normal (read) mode
               return (
                 <tr key={ing.id} style={{ background: rowBg, borderBottom: "1px solid #f3f4f6" }}>
                   <td style={{ padding: "6px 12px", fontSize: 12, fontWeight: 500 }}>{ing.name}</td>
                   <td style={{ padding: "6px 12px" }}><CatPill category={ing.category} /></td>
                   <td style={{ padding: "4px 8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <NumInput value={period.openingStock[ing.id] || 0} onChange={v => setStock("openingStock", ing.id, v)} />
+                      {readOnly ? <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{period.openingStock[ing.id] || 0}</span> : <NumInput value={period.openingStock[ing.id] || 0} onChange={v => setStock("openingStock", ing.id, v)} />}
                       <span style={{ fontSize: 10, color: "#9ca3af" }}>{unit}</span>
                     </div>
                   </td>
-                  <td style={{ padding: "4px 8px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <NumInput value={period.deliveries[ing.id] || 0} onChange={v => setStock("deliveries", ing.id, v)} />
-                      <span style={{ fontSize: 10, color: "#9ca3af" }}>{unit}</span>
-                    </div>
+                  <td style={{ padding: "6px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: received > 0 ? "#374151" : "#9ca3af" }}>
+                    {received} {unit}
                   </td>
                   <td style={{ padding: "4px 8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <NumInput value={period.closingStock[ing.id] || ""} onChange={v => setStock("closingStock", ing.id, v)} />
+                      {readOnly ? <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{period.closingStock[ing.id] ?? "--"}</span> : <NumInput value={period.closingStock[ing.id] || ""} onChange={v => setStock("closingStock", ing.id, v)} />}
                       <span style={{ fontSize: 10, color: "#9ca3af" }}>{unit}</span>
                     </div>
                   </td>
@@ -954,11 +937,142 @@ function InventoryPage({ lib, period, ingMap, theoClose, usage, getStatus, updat
   )
 }
 
+//- DELIVERIES -
+
+function DeliveriesPage({ lib, period, ingMap, updatePeriod, isCurrentMonth }) {
+  const [showNew, setShowNew] = useState(false)
+  const [catFilter, setCatFilter] = useState("All")
+  const [draftItems, setDraftItems] = useState({})
+  const receives = period.receives || []
+  const cats = ["All", ...CATEGORIES]
+
+  const totalForIng = (ingId) => receives.reduce((s, r) => s + (r.items[ingId] || 0), 0)
+
+  const saveDelivery = () => {
+    const items = {}
+    Object.entries(draftItems).forEach(([id, qty]) => {
+      if (qty > 0) items[id] = qty
+    })
+    if (Object.keys(items).length === 0) return
+    const recv = { id: "recv_" + Date.now(), date: new Date().toISOString().slice(0,10), items }
+    updatePeriod(prev => ({ ...prev, receives: [...(prev.receives || []), recv] }))
+    setDraftItems({})
+    setShowNew(false)
+  }
+
+  const deleteRecv = (id) => {
+    if (!window.confirm("Delete this delivery entry?")) return
+    updatePeriod(prev => ({ ...prev, receives: (prev.receives || []).filter(r => r.id !== id) }))
+  }
+
+  const filteredIngs = lib.ingredients.filter(ing => catFilter === "All" || ing.category === catFilter)
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <PageTitle title="Deliveries">
+        {isCurrentMonth && (
+          <button onClick={() => setShowNew(true)} style={{ padding: "6px 16px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 5, background: "#111827", color: "#fff", cursor: "pointer" }}>
+            + New Delivery
+          </button>
+        )}
+      </PageTitle>
+
+      {showNew && (
+        <div style={{ background: "#fff", border: "2px solid #111827", borderRadius: 8, marginBottom: 20, overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", background: "#111827", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: "#fff" }}>New Delivery — {new Date().toLocaleDateString("en-AU", { weekday:"short", day:"numeric", month:"short", year:"numeric" })}</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { setShowNew(false); setDraftItems({}) }} style={{ padding: "5px 14px", border: "1px solid #6b7280", borderRadius: 4, background: "transparent", color: "#d1d5db", cursor: "pointer", fontSize: 12 }}>Cancel</button>
+              <button onClick={saveDelivery} style={{ padding: "5px 14px", border: "none", borderRadius: 4, background: "#16a34a", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Save Delivery</button>
+            </div>
+          </div>
+          <div style={{ padding: "10px 16px 6px", borderBottom: "1px solid #e5e7eb", display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {cats.map(c => (
+              <button key={c} onClick={() => setCatFilter(c)} style={{ padding: "3px 10px", fontSize: 11, borderRadius: 20, cursor: "pointer", background: catFilter === c ? "#111827" : "#f3f4f6", color: catFilter === c ? "#fff" : "#374151", border: "none" }}>{c}</button>
+            ))}
+          </div>
+          <div style={{ maxHeight: 420, overflow: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb" }}>
+                  {["Name","Category","Qty Received","Unit"].map(h => (
+                    <th key={h} style={{ padding: "7px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredIngs.map((ing, i) => (
+                  <tr key={ing.id} style={{ background: draftItems[ing.id] > 0 ? "#f0fdf4" : i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6" }}>
+                    <td style={{ padding: "5px 12px", fontSize: 12, fontWeight: 500 }}>{ing.name}</td>
+                    <td style={{ padding: "5px 12px" }}><CatPill category={ing.category} /></td>
+                    <td style={{ padding: "4px 8px" }}>
+                      <NumInput value={draftItems[ing.id] || ""} onChange={v => setDraftItems(p => ({ ...p, [ing.id]: v }))} style={{ width: 72 }} />
+                    </td>
+                    <td style={{ padding: "5px 12px", fontSize: 12, color: "#6b7280" }}>{countUnit(ing)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ padding: "10px 16px", background: "#f9fafb", borderTop: "1px solid #e5e7eb", fontSize: 12, color: "#6b7280" }}>
+            {Object.values(draftItems).filter(v => v > 0).length} items entered — only non-zero quantities will be saved
+          </div>
+        </div>
+      )}
+
+      {/* Delivery log */}
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" }}>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>Delivery Log</span>
+          <span style={{ fontSize: 12, color: "#6b7280" }}>{receives.length} {receives.length === 1 ? "delivery" : "deliveries"} this month</span>
+        </div>
+        {receives.length === 0 ? (
+          <div style={{ padding: "32px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>
+            No deliveries logged this month
+          </div>
+        ) : (
+          [...receives].reverse().map((recv, ri) => {
+            const itemCount = Object.keys(recv.items).length
+            const totalUnits = Object.values(recv.items).reduce((s, v) => s + v, 0)
+            return (
+              <div key={recv.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 16, background: ri % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 12, fontWeight: 700, color: "#374151", minWidth: 100 }}>{new Date(recv.date).toLocaleDateString("en-AU", { weekday:"short", day:"numeric", month:"short" })}</span>
+                  <span style={{ fontSize: 12, color: "#374151" }}>{itemCount} products received</span>
+                  <span style={{ fontSize: 12, color: "#6b7280" }}>{totalUnits} total units</span>
+                  <div style={{ marginLeft: "auto", display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {Object.entries(recv.items).slice(0, 4).map(([ingId, qty]) => {
+                      const ing = ingMap[ingId]
+                      return ing ? <span key={ingId} style={{ fontSize: 11, color: "#374151" }}>{qty} × {ing.name}</span> : null
+                    })}
+                    {itemCount > 4 && <span style={{ fontSize: 11, color: "#9ca3af" }}>+{itemCount - 4} more</span>}
+                  </div>
+                  {isCurrentMonth && (
+                    <button onClick={() => deleteRecv(recv.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", fontSize: 13, padding: "2px 6px" }}>Delete</button>
+                  )}
+                </div>
+              </div>
+            )
+          })
+        )}
+        {receives.length > 0 && (
+          <div style={{ padding: "10px 16px", background: "#f9fafb", borderTop: "1px solid #e5e7eb" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Month totals: </span>
+            {lib.ingredients.filter(ing => totalForIng(ing.id) > 0).slice(0, 6).map(ing => (
+              <span key={ing.id} style={{ fontSize: 11, color: "#374151", marginRight: 12 }}>{totalForIng(ing.id)} {countUnit(ing)} {ing.name}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 //- BATCHES -
 
 const BATCH_METHOD_TAGS = ["Premix","Fat Wash","Clarified","Carbonated","Infusion","Other"]
 
-function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod }) {
+function BatchesPage({ lib, period, ingMap, batchLog, updateLib, updatePeriod, isCurrentMonth }) {
   const [subTab, setSubTab] = useState("stock")
   const [showNewBatch, setShowNewBatch] = useState(false)
   const [logBatch, setLogBatch] = useState(null)
@@ -1600,11 +1714,19 @@ function EditRecipeModal({ recipe, ingredients, batches, ingMap, batchMap, batch
   const handleSave = () => {
     const price = parseFloat(salePrice)
     if (!name.trim() || isNaN(price)) return
-    onSave({ ...recipe, name: name.trim(), salePrice: price, category, ingredients: ings.filter(i => i.qty > 0) })
+    const saved = ings
+      .filter(i => i.qty > 0)
+      .map(i => ({
+        id: i.id,
+        qty: i.qty,
+        isBatch: !!(i.isBatch || batchMap[i.id]),
+      }))
+    onSave({ ...recipe, name: name.trim(), salePrice: price, category, ingredients: saved })
   }
 
   const pourCost = ings.reduce((s, ri) => {
-    if (ri.isBatch) {
+    const isBatch = !!(ri.isBatch || batchMap[ri.id])
+    if (isBatch) {
       const run = getLatestRun(ri.id, batchLog)
       return s + ri.qty * batchCostPerMl(run, ingMap)
     }
@@ -1745,7 +1867,7 @@ function MarginsTab({ recipes, ingMap, batchMap, batchLog }) {
 
 //- SALES -
 
-function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeekSales, logWeek }) {
+function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeekSales, logWeek, isCurrentMonth }) {
   const [subTab, setSubTab] = useState("week")
   const [search, setSearch] = useState("")
   const [expandedWeek, setExpandedWeek] = useState({})
@@ -1770,8 +1892,8 @@ function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeek
         )}
       </PageTitle>
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-        {[["week","This Week"],["log","Monthly Log"]].map(([id, label]) => (
-          <button key={id} onClick={() => setSubTab(id)} style={{
+        {(isCurrentMonth ? [["week","This Week"],["log","Monthly Log"]] : [["log","Monthly Log"]]).map(([id, label]) => (
+          <button key={id} onClick={() => setSubTab(id === "week" && !isCurrentMonth ? "log" : id)} style={{
             padding: "5px 16px", fontSize: 12, borderRadius: 4, cursor: "pointer",
             background: subTab === id ? "#111827" : "#fff",
             color: subTab === id ? "#fff" : "#374151",
@@ -1835,7 +1957,7 @@ function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeek
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "#f9fafb" }}>
-                {["Week","Date","Drinks Sold","Revenue","Pour Cost","GP"].map(h => (
+                {["Week","Drinks Sold","Revenue","Pour Cost","GP"].map(h => (
                   <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#374151", borderBottom: "1px solid #e5e7eb" }}>{h}</th>
                 ))}
               </tr>
@@ -1844,25 +1966,25 @@ function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeek
               {period.weeklyLog.map((wk, i) => {
                 const recipes = lib.recipes
                 const wkRevenue = recipes.reduce((s, r) => s + r.salePrice * (wk.sales[r.id] || 0), 0)
-                const wkPourCost = recipes.reduce((s, r) => s + calcPourCost(r, { ...Object.fromEntries(DEFAULT_INGREDIENTS.map(x => [x.id, x])) }) * (wk.sales[r.id] || 0), 0)
+                const wkPourCost = recipes.reduce((s, r) => s + calcPourCost(r, ingMap, batchMap, batchLog) * (wk.sales[r.id] || 0), 0)
                 const wkDrinks = Object.values(wk.sales).reduce((s, v) => s + v, 0)
                 const wkGP = wkRevenue - wkPourCost
+                const weekLabel = wk.dateRange || wk.label || wk.weekOf || "Week"
                 return (
                   <>
-                    <tr key={wk.label} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }} onClick={() => setExpandedWeek(p => ({ ...p, [i]: !p[i] }))}>
+                    <tr key={wk.id || i} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f3f4f6", cursor: "pointer" }} onClick={() => setExpandedWeek(p => ({ ...p, [i]: !p[i] }))}>
                       <td style={{ padding: "7px 12px", fontSize: 12, fontWeight: 600 }}>
                         <span style={{ marginRight: 6, color: "#9ca3af" }}>{expandedWeek[i] ? "▼" : "▶"}</span>
-                        {wk.label}
+                        {weekLabel}
                       </td>
-                      <td style={{ padding: "7px 12px", fontSize: 12 }}>{wk.weekOf}</td>
                       <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{wkDrinks}</td>
                       <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${wkRevenue.toFixed(2)}</td>
                       <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${wkPourCost.toFixed(2)}</td>
                       <td style={{ padding: "7px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12, color: "#16a34a" }}>${wkGP.toFixed(2)}</td>
                     </tr>
                     {expandedWeek[i] && (
-                      <tr key={wk.label + "-exp"}>
-                        <td colSpan={6} style={{ padding: "0 12px 12px 32px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                      <tr key={(wk.id || i) + "-exp"}>
+                        <td colSpan={5} style={{ padding: "0 12px 12px 32px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
                           <table style={{ borderCollapse: "collapse", marginTop: 8 }}>
                             <thead>
                               <tr>{["Drink","Qty","Revenue"].map(h => <th key={h} style={{ padding: "3px 12px", textAlign:"left", fontSize: 11, color: "#6b7280", fontWeight: 600 }}>{h}</th>)}</tr>
@@ -1890,15 +2012,13 @@ function SalesPage({ lib, period, ingMap, batchMap, batchLog, weekSales, setWeek
               {period.weeklyLog.length === 0 && (
                 <tr><td colSpan={6} style={{ padding: "24px 12px", textAlign: "center", color: "#9ca3af", fontSize: 12 }}>No weeks logged yet</td></tr>
               )}
-              {/* Monthly totals */}
               {period.weeklyLog.length > 0 && (() => {
                 const mRev = lib.recipes.reduce((s, r) => s + r.salePrice * (period.monthlySales[r.id] || 0), 0)
-                const ingMapAll = Object.fromEntries(DEFAULT_INGREDIENTS.map(x => [x.id, x]))
-                const mPC = lib.recipes.reduce((s, r) => s + calcPourCost(r, ingMapAll) * (period.monthlySales[r.id] || 0), 0)
+                const mPC = lib.recipes.reduce((s, r) => s + calcPourCost(r, ingMap, batchMap, batchLog) * (period.monthlySales[r.id] || 0), 0)
                 const mDrinks = Object.values(period.monthlySales).reduce((s, v) => s + v, 0)
                 return (
                   <tr style={{ background: "#1f2937", color: "#fff", fontWeight: 700, borderTop: "2px solid #374151" }}>
-                    <td colSpan={2} style={{ padding: "8px 12px", fontSize: 12 }}>Monthly Total</td>
+                    <td style={{ padding: "8px 12px", fontSize: 12 }}>Monthly Total</td>
                     <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>{mDrinks}</td>
                     <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${mRev.toFixed(2)}</td>
                     <td style={{ padding: "8px 12px", fontFamily: "JetBrains Mono, monospace", fontSize: 12 }}>${mPC.toFixed(2)}</td>
